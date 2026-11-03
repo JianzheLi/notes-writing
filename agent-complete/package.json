@@ -155,6 +155,7 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node --test 'tests/*.test.mjs'",
     "bench": "node scripts/bench.mjs",
     "package": "vsce package"
   },

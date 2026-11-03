@@ -1,77 +1,16 @@
 import * as vscode from 'vscode';
+import { mathStateAt } from './mathScan';
 import { FormulaStyle, MathContext } from './types';
 
 /** 扫描窗口：光标前最多回看这么多行，用来判断是否在数学环境里。 */
 const LOOKBACK_LINES = 400;
-
-interface ScanState {
-  inSingleDollar: boolean;
-  inDoubleDollar: boolean;
-  inBracketDisplay: boolean;
-  envStack: string[];
-}
-
-/** 扫描文本里的数学定界符状态（忽略转义字符）。 */
-function scanMathState(text: string): ScanState {
-  const state: ScanState = {
-    inSingleDollar: false,
-    inDoubleDollar: false,
-    inBracketDisplay: false,
-    envStack: [],
-  };
-
-  for (let i = 0; i < text.length; i += 1) {
-    const char = text[i];
-
-    if (char === '\\') {
-      const next = text[i + 1];
-      if (next === '[') {
-        state.inBracketDisplay = true;
-        i += 1;
-        continue;
-      }
-      if (next === ']') {
-        state.inBracketDisplay = false;
-        i += 1;
-        continue;
-      }
-      const rest = text.slice(i);
-      const begin = /^\\begin\{([^}]*)\}/.exec(rest);
-      if (begin) {
-        state.envStack.push(begin[1]);
-        i += begin[0].length - 1;
-        continue;
-      }
-      const end = /^\\end\{([^}]*)\}/.exec(rest);
-      if (end) {
-        const index = state.envStack.lastIndexOf(end[1]);
-        if (index >= 0) state.envStack.splice(index, 1);
-        i += end[0].length - 1;
-        continue;
-      }
-      i += 1;
-      continue;
-    }
-
-    if (char === '$') {
-      if (text[i + 1] === '$') {
-        state.inDoubleDollar = !state.inDoubleDollar;
-        i += 1;
-        continue;
-      }
-      if (!state.inDoubleDollar) {
-        state.inSingleDollar = !state.inSingleDollar;
-      }
-    }
-  }
-
-  return state;
-}
+/** 光标后最多看这么多行，用来找行内公式的闭合 `$`。 */
+const LOOKAHEAD_LINES = 200;
 
 /**
  * 判断光标处的公式场景：
- * - 在数学环境/$$/\[ 内 → 继续补全（行间）
- * - 在 $...$ 内 → 继续补全（行内）
+ * - 在数学环境 / `$$` / `\[` 内 → 继续补全（行间）
+ * - 在 `$...$` / `\(...\)` 内 → 继续补全（行内）
  * - 否则按设置或行内/行间启发式决定生成样式
  */
 export function detectMathContext(
@@ -80,16 +19,20 @@ export function detectMathContext(
   style: FormulaStyle,
 ): MathContext {
   const startLine = Math.max(0, position.line - LOOKBACK_LINES);
-  const textBefore = document.getText(
-    new vscode.Range(new vscode.Position(startLine, 0), position),
-  );
-  const state = scanMathState(textBefore);
+  const endLine = Math.min(document.lineCount - 1, position.line + LOOKAHEAD_LINES);
+  const start = new vscode.Position(startLine, 0);
+  const end = document.lineAt(endLine).range.end;
+  const text = document.getText(new vscode.Range(start, end));
+  const offset = document.offsetAt(position) - document.offsetAt(start);
+  const state = mathStateAt(text, offset, document.languageId);
 
   if (state.envStack.length > 0) {
+    const environment = state.envStack[state.envStack.length - 1];
     return {
       mode: 'continue-display',
       insideMath: true,
-      reason: `inside environment ${state.envStack[state.envStack.length - 1]}`,
+      reason: `inside environment ${environment}`,
+      environment,
     };
   }
 
@@ -97,15 +40,15 @@ export function detectMathContext(
     return {
       mode: 'continue-display',
       insideMath: true,
-      reason: 'inside $$ or \\[...\\]',
+      reason: state.inDoubleDollar ? 'inside $$...$$' : 'inside \\[...\\]',
     };
   }
 
-  if (state.inSingleDollar) {
+  if (state.inSingleDollar || state.inParenInline) {
     return {
       mode: 'continue-inline',
       insideMath: true,
-      reason: 'inside $...$',
+      reason: state.inSingleDollar ? 'inside $...$' : 'inside \\(...\\)',
     };
   }
 
@@ -122,4 +65,24 @@ export function detectMathContext(
   return atLineEnd
     ? { mode: 'display', insideMath: false, reason: 'line end -> display' }
     : { mode: 'inline', insideMath: false, reason: 'mid line -> inline' };
+}
+
+/**
+ * 选区的公式样式：
+ * - 设置里强制 inline/display 时直接沿用
+ * - auto：整行选区（前后只有空白）→ 行间；否则（句中短语）→ 行内
+ * - 多行选区 → 行间
+ */
+export function selectionStyle(
+  document: vscode.TextDocument,
+  selection: vscode.Selection,
+  style: FormulaStyle,
+): 'inline' | 'display' {
+  if (style === 'inline' || style === 'display') return style;
+  if (selection.start.line !== selection.end.line) return 'display';
+
+  const line = document.lineAt(selection.start.line).text;
+  const before = line.slice(0, selection.start.character).trim();
+  const after = line.slice(selection.end.character).trim();
+  return before.length === 0 && after.length === 0 ? 'display' : 'inline';
 }

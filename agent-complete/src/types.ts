@@ -10,6 +10,8 @@ export interface MathContext {
   mode: FormulaMode;
   insideMath: boolean;
   reason: string;
+  /** 光标所在的数学环境名（例如 equation / align*）。 */
+  environment?: string;
 }
 
 export interface CodeContext {
@@ -17,6 +19,8 @@ export interface CodeContext {
   suffix: string;
   section: string;
   lineBefore: string;
+  /** 选区文字（仅在有选区时存在），作为公式描述传给模型。 */
+  selection?: string;
 }
 
 export interface ChatMessage {

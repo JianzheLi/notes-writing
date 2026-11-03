@@ -1,9 +1,10 @@
 # agent-complete 插件计划（VSCode · Cmd+E · DeepSeek）
 
-- 状态：草案 v0.5（计划已定，待用户确认后开工 M1）
+- 状态：v0.6（M0/M1 已完成；M2 代码完成、待验收；下一步 M3 语法检查）
 - 日期：2026-11-03（v0.5 更新：2026-11-04）
 - 仓库：`notes-writing/`（分支 main，git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>`，远程 https://github.com/JianzheLi/notes-writing）
 - 代码：`notes-writing/agent-complete/`；开发流程见 [DEV-PLAN.md](DEV-PLAN.md)
+- 里程碑编号与验收以 [DEV-PLAN.md](DEV-PLAN.md) 为准（本文第 10 节为早期编号，后续以 DEV-PLAN 的顺序执行）。
 - 已确认：快捷键 `Cmd+E`；上下文默认 32k、配置上限 128k；默认思考强度 **max**；语言 `markdown / latex / tex / python`；
   仅手动触发；主场景 = 写完文字描述后让 AI 写公式（行内 / 行间）；必须做简单语法检查；
   行内/行间 auto + 两个强制命令。

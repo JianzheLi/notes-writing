@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import { chatCompletion } from './chatClient';
 import { buildContext, isExcluded } from './context';
-import { detectMathContext } from './mathMode';
+import { detectMathContext, selectionStyle } from './mathMode';
 import { buildSuggestion } from './postprocess';
 import { buildMessages } from './prompt';
 import { log } from './log';
 import { httpRequest } from './httpPost';
 import { resolveProxyCandidates } from './proxy';
-import { FormulaStyle, ProxyChoice, ReasoningEffort } from './types';
+import { FormulaStyle, MathContext, ProxyChoice, ReasoningEffort } from './types';
 
 const SECRET_KEY = 'agentComplete.deepseekApiKey';
 
@@ -161,7 +161,14 @@ export function activate(context: vscode.ExtensionContext) {
     if (!editor) return;
 
     const document = editor.document;
-    const position = editor.selection.active;
+    const selection = editor.selection;
+    const selectedText = selection.isEmpty ? '' : document.getText(selection);
+    // 只选中空白不算「在用选区描述公式」，退回光标模式。
+    const hasSelection = selectedText.trim().length > 0;
+    const position = selection.active;
+    const trailingNewlines = hasSelection
+      ? countTrailingNewlines(selectedText)
+      : 0;
     const config = vscode.workspace.getConfiguration('agentComplete');
 
     const languages = config.get<string[]>('languages', []);
@@ -198,12 +205,22 @@ export function activate(context: vscode.ExtensionContext) {
     inflight = controller;
 
     const effort = config.get<ReasoningEffort>('reasoningEffort', 'max');
-    const style = forcedStyle ?? config.get<FormulaStyle>('formulaStyle', 'auto');
-    const math = detectMathContext(document, position, style);
+    const configuredStyle = forcedStyle ?? config.get<FormulaStyle>('formulaStyle', 'auto');
+    let math: MathContext;
+    if (hasSelection) {
+      math = {
+        mode: selectionStyle(document, selection, configuredStyle),
+        insideMath: false,
+        reason: 'replace selection',
+      };
+    } else {
+      math = detectMathContext(document, position, configuredStyle);
+    }
     const codeContext = buildContext(
       document,
       position,
       config.get<number>('contextTokens', 32000),
+      hasSelection ? selection : undefined,
     );
     const messages = buildMessages({
       fileName: vscode.workspace.asRelativePath(document.uri, false),
@@ -220,19 +237,23 @@ export function activate(context: vscode.ExtensionContext) {
     const startedAt = Date.now();
     log(
       out,
-      `请求：${document.languageId} | mode=${math.mode} | effort=${effort} | ` +
+      `请求：${document.languageId} | mode=${math.mode}(${math.reason}) | effort=${effort} | ` +
         `proxies=${proxyCandidates.map((c) => c.source).join(',') || 'none(direct)'} | ` +
-        `上下文 ${codeContext.prefix.length}+${codeContext.suffix.length} 字符`,
+        `上下文 ${codeContext.prefix.length}+${codeContext.suffix.length} 字符` +
+        (hasSelection
+          ? ` | 选区 ${selectedText.length} 字符（实际发送 ${codeContext.selection?.length ?? 0}）`
+          : ''),
     );
     const effortLabel = effort === 'none' ? '快速' : `思考 ${effort}`;
+    const actionLabel = hasSelection ? `${effortLabel}，替换选区` : effortLabel;
     let status = vscode.window.setStatusBarMessage(
-      `$(sync~spin) Agent Complete 生成中（${effortLabel}）…`,
+      `$(sync~spin) Agent Complete 生成中（${actionLabel}）…`,
     );
     const ticker = setInterval(() => {
       const seconds = Math.round((Date.now() - startedAt) / 1000);
       status.dispose();
       status = vscode.window.setStatusBarMessage(
-        `$(sync~spin) Agent Complete 生成中（${effortLabel}，${seconds}s）…`,
+        `$(sync~spin) Agent Complete 生成中（${actionLabel}，${seconds}s）…`,
       );
     }, 1000);
 
@@ -254,7 +275,10 @@ export function activate(context: vscode.ExtensionContext) {
       status.dispose();
       if (controller.signal.aborted) return;
 
-      const text = buildSuggestion(result.content, math.mode, codeContext.lineBefore);
+      const text = buildSuggestion(result.content, math.mode, codeContext.lineBefore, {
+        replace: hasSelection,
+        trailingNewlines,
+      });
       log(
         out,
         `生成 ${result.elapsedMs}ms | mode=${math.mode} | ` +
@@ -271,21 +295,57 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      const stillSameTarget =
-        vscode.window.activeTextEditor === editor &&
-        editor.selection.active.isEqual(position);
-      if (!stillSameTarget) {
-        vscode.window.setStatusBarMessage(
-          '$(circle-slash) Agent Complete：光标已移动，丢弃这次结果',
-          2500,
-        );
-        return;
+      if (hasSelection) {
+        const sameSelection =
+          vscode.window.activeTextEditor === editor &&
+          !editor.selection.isEmpty &&
+          editor.selection.isEqual(selection);
+        if (!sameSelection) {
+          vscode.window.setStatusBarMessage(
+            '$(circle-slash) Agent Complete：选区已变化，丢弃这次结果',
+            2500,
+          );
+          return;
+        }
+      } else {
+        const stillSameTarget =
+          vscode.window.activeTextEditor === editor &&
+          editor.selection.active.isEqual(position);
+        if (!stillSameTarget) {
+          vscode.window.setStatusBarMessage(
+            '$(circle-slash) Agent Complete：光标已移动，丢弃这次结果',
+            2500,
+          );
+          return;
+        }
       }
 
       if (!text) {
         vscode.window.setStatusBarMessage(
           '$(circle-slash) Agent Complete：模型没有给出公式',
           2500,
+        );
+        return;
+      }
+
+      // 有选区：直接替换（ghost text 的 range 不能跨行，这里统一走直接编辑，可 Cmd+Z 撤销）。
+      if (hasSelection) {
+        pending = undefined;
+        const applied = await editor.edit(
+          (builder) => builder.replace(selection, text),
+          { undoStopBefore: true, undoStopAfter: true },
+        );
+        if (!applied) {
+          vscode.window.setStatusBarMessage(
+            '$(warning) Agent Complete：替换选区失败（文档可能已变化）',
+            4000,
+          );
+          return;
+        }
+        log(out, `已替换选区：${text.length} 字符`);
+        vscode.window.setStatusBarMessage(
+          `$(check) Agent Complete：已替换选区（${text.length} 字符）`,
+          3000,
         );
         return;
       }
@@ -337,6 +397,18 @@ export function deactivate() {
   inflight?.abort();
   inflight = undefined;
   pending = undefined;
+}
+
+/** 选区结尾有几个换行（替换后保持原来的段落间距）。 */
+function countTrailingNewlines(text: string): number {
+  let count = 0;
+  let index = text.length;
+  while (index > 0 && text[index - 1] === '\n') {
+    count += 1;
+    index -= 1;
+    if (index > 0 && text[index - 1] === '\r') index -= 1;
+  }
+  return count;
 }
 
 /** 把 Error 的 cause（如 ENOTFOUND/ECONNREFUSED）也带上，方便诊断网络问题。 */

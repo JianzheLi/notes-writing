@@ -9,44 +9,92 @@ const PREFIX_RATIO = 0.9;
 /**
  * 采集光标前文、光标后文、当前小节，并按 token 预算裁剪。
  * 裁剪时尽量对齐到行边界，避免把半行代码/公式切给模型。
+ *
+ * 有选区时：选区文字单独作为「描述」返回，前文截到选区开头、后文从选区末尾开始，
+ * 这样模型既能看到描述，也能看到描述前后的上下文，而且不会把选区重复两遍。
  */
 export function buildContext(
   document: vscode.TextDocument,
   position: vscode.Position,
   contextTokens: number,
+  selection?: vscode.Selection,
 ): CodeContext {
+  const hasSelection = selection !== undefined && !selection.isEmpty;
   const charBudget = Math.max(1000, Math.round(contextTokens * CHARS_PER_TOKEN));
-  const prefixBudget = Math.floor(charBudget * PREFIX_RATIO);
-  const suffixBudget = charBudget - prefixBudget;
+
+  let selectionText: string | undefined;
+  let prefixBudget = Math.floor(charBudget * PREFIX_RATIO);
+  let suffixBudget = charBudget - prefixBudget;
+
+  if (hasSelection) {
+    const rawSelection = document.getText(selection);
+    const selectionBudget = Math.floor(charBudget * 0.5);
+    selectionText = truncateEnd(rawSelection, selectionBudget);
+    const remaining = Math.max(0, charBudget - selectionText.length);
+    prefixBudget = Math.floor(remaining * PREFIX_RATIO);
+    suffixBudget = remaining - prefixBudget;
+  }
+
+  const prefixEnd = hasSelection ? selection.start : position;
+  const suffixStart = hasSelection ? selection.end : position;
 
   const documentStart = new vscode.Position(0, 0);
-  const fullPrefix = document.getText(new vscode.Range(documentStart, position));
+  const fullPrefix = document.getText(new vscode.Range(documentStart, prefixEnd));
   let prefix = fullPrefix;
   if (prefix.length > prefixBudget) {
     prefix = prefix.slice(prefix.length - prefixBudget);
     const firstNewline = prefix.indexOf('\n');
     if (firstNewline >= 0) prefix = prefix.slice(firstNewline + 1);
+    prefix = dropLeadingLowSurrogate(prefix);
   }
 
   const documentEnd = document.lineAt(document.lineCount - 1).range.end;
-  const fullSuffix = document.getText(new vscode.Range(position, documentEnd));
+  const fullSuffix = document.getText(new vscode.Range(suffixStart, documentEnd));
   let suffix = fullSuffix;
   if (suffix.length > suffixBudget) {
-    suffix = suffix.slice(0, suffixBudget);
+    suffix = truncateEnd(suffix, suffixBudget);
     const lastNewline = suffix.lastIndexOf('\n');
     if (lastNewline >= 0) suffix = suffix.slice(0, lastNewline);
+    suffix = dropTrailingHighSurrogate(suffix);
   }
 
   const lineBefore = document
-    .lineAt(position.line)
-    .text.slice(0, position.character);
+    .lineAt(prefixEnd.line)
+    .text.slice(0, prefixEnd.character);
 
   return {
     prefix,
     suffix,
     section: findSection(prefix, document.languageId),
     lineBefore,
+    selection: selectionText,
   };
+}
+
+/** 按字符预算截断，避免从 UTF-16 代理对（emoji 等）中间切开。 */
+function truncateEnd(text: string, budget: number): string {
+  if (text.length <= budget) return text;
+  let end = Math.max(0, budget);
+  if (end > 0 && isHighSurrogate(text.charCodeAt(end - 1))) end -= 1;
+  return text.slice(0, end);
+}
+
+function dropLeadingLowSurrogate(text: string): string {
+  return text.length > 0 && isLowSurrogate(text.charCodeAt(0)) ? text.slice(1) : text;
+}
+
+function dropTrailingHighSurrogate(text: string): string {
+  return text.length > 0 && isHighSurrogate(text.charCodeAt(text.length - 1))
+    ? text.slice(0, -1)
+    : text;
+}
+
+function isHighSurrogate(code: number): boolean {
+  return code >= 0xd800 && code <= 0xdbff;
+}
+
+function isLowSurrogate(code: number): boolean {
+  return code >= 0xdc00 && code <= 0xdfff;
 }
 
 function findSection(prefix: string, languageId: string): string {
