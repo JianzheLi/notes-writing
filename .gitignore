@@ -3,3 +3,8 @@
 node_modules/
 out/
 .npm-cache/
+api.txt
+*.key
+*.pem
+.env
+.env.*

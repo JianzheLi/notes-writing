@@ -1,16 +1,14 @@
 import * as vscode from 'vscode';
+import { CodeContext } from './types';
 
-export interface CodeContext {
-  prefix: string;
-  suffix: string;
-}
-
-/** 代码字符数 ÷ token 的粗略换算比例（用于把 contextTokens 预算换成字符预算）。 */
+/** 代码/文本字符数 ÷ token 的粗略换算比例。 */
 const CHARS_PER_TOKEN = 3.5;
+/** 前缀占预算比例，剩下的留给光标后文。 */
+const PREFIX_RATIO = 0.9;
 
 /**
- * 采集"光标前 + 光标后"的代码上下文，按 token 预算裁剪。
- * 前 85% 给前缀，后 15% 给后缀；裁剪时尽量对齐到行边界。
+ * 采集光标前文、光标后文、当前小节，并按 token 预算裁剪。
+ * 裁剪时尽量对齐到行边界，避免把半行代码/公式切给模型。
  */
 export function buildContext(
   document: vscode.TextDocument,
@@ -18,7 +16,7 @@ export function buildContext(
   contextTokens: number,
 ): CodeContext {
   const charBudget = Math.max(1000, Math.round(contextTokens * CHARS_PER_TOKEN));
-  const prefixBudget = Math.floor(charBudget * 0.85);
+  const prefixBudget = Math.floor(charBudget * PREFIX_RATIO);
   const suffixBudget = charBudget - prefixBudget;
 
   const documentStart = new vscode.Position(0, 0);
@@ -39,7 +37,32 @@ export function buildContext(
     if (lastNewline >= 0) suffix = suffix.slice(0, lastNewline);
   }
 
-  return { prefix, suffix };
+  const lineBefore = document
+    .lineAt(position.line)
+    .text.slice(0, position.character);
+
+  return {
+    prefix,
+    suffix,
+    section: findSection(prefix, document.languageId),
+    lineBefore,
+  };
+}
+
+function findSection(prefix: string, languageId: string): string {
+  const lines = prefix.split('\n').reverse();
+  const markdown = languageId === 'markdown' || languageId === 'md';
+  const latex = languageId === 'latex' || languageId === 'tex';
+
+  for (const line of lines) {
+    const text = line.trim();
+    if (!text) continue;
+    if (markdown && /^#{1,6}\s+\S/.test(text)) return text;
+    if (latex && /^\\(section|subsection|subsubsection|chapter|paragraph)\*?\{/.test(text)) {
+      return text;
+    }
+  }
+  return '';
 }
 
 /**

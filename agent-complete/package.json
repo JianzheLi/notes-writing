@@ -37,6 +37,11 @@
         "command": "agentComplete.setApiKey",
         "title": "设置 DeepSeek API Key",
         "category": "Agent Complete"
+      },
+      {
+        "command": "agentComplete.diagnostics",
+        "title": "网络诊断",
+        "category": "Agent Complete"
       }
     ],
     "keybindings": [
@@ -74,6 +79,11 @@
           "type": "string",
           "default": "https://api.deepseek.com",
           "description": "DeepSeek API base URL。"
+        },
+        "agentComplete.proxy": {
+          "type": "string",
+          "default": "",
+          "description": "手动指定本机代理（优先于自动检测），例如 socks5://127.0.0.1:13659 或 http://127.0.0.1:7890。"
         },
         "agentComplete.maxTokens": {
           "type": "number",
@@ -146,12 +156,16 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "bench": "node scripts/bench.mjs",
-    "package": "vsce package --no-dependencies"
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
     "@types/vscode": "^1.144.0",
     "@vscode/vsce": "^4.1.0",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "https-proxy-agent": "^9.1.0",
+    "socks-proxy-agent": "^10.1.0"
   }
 }
