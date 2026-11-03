@@ -1,10 +1,10 @@
 # agent-complete 插件计划（VSCode · Cmd+E · DeepSeek）
 
-- 状态：草案 v0.4（计划迭代中；M0 骨架已就绪，M1 未开工）
-- 日期：2026-11-03（v0.4 更新：2026-11-04）
-- 仓库：`notes-writing/`（分支 main，git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>`）
-- 代码：`notes-writing/agent-complete/`
-- 已确认：快捷键 `Cmd+E`；上下文默认 32k、配置上限 128k；语言 `markdown / latex / tex / python`；
+- 状态：草案 v0.5（计划已定，待用户确认后开工 M1）
+- 日期：2026-11-03（v0.5 更新：2026-11-04）
+- 仓库：`notes-writing/`（分支 main，git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>`，远程 https://github.com/JianzheLi/notes-writing）
+- 代码：`notes-writing/agent-complete/`；开发流程见 [DEV-PLAN.md](DEV-PLAN.md)
+- 已确认：快捷键 `Cmd+E`；上下文默认 32k、配置上限 128k；默认思考强度 **max**；语言 `markdown / latex / tex / python`；
   仅手动触发；主场景 = 写完文字描述后让 AI 写公式（行内 / 行间）；必须做简单语法检查；
   行内/行间 auto + 两个强制命令。
 
@@ -23,6 +23,12 @@
 6. 上下文默认从 8k 提高到 **32k**，配置上限 **128k**。
 7. 补充"FIM 是什么、框架一般怎么用"的说明。
 8. 补充模型与思考强度选项（`deepseek-flash` / `deepseek-v4-pro`；`none/low/high/max`）。
+
+**v0.4 → v0.5**
+
+9. 默认思考强度定为 **`max`**（`deepseek-flash` + thinking enabled + `reasoning_effort: max`）；`maxTokens` 提到 8192、`timeoutMs` 提到 90s。
+10. 远程仓库已创建并推送：GitHub `JianzheLi/notes-writing`（private）。
+11. 新增 [DEV-PLAN.md](DEV-PLAN.md)：开发流程、子智能体分工、审查清单、里程碑与提交/打 tag 规则。
 9. 远程仓库：本机没有 GitHub 凭证，需要用户登录后由我创建（见第 15 节）。
 
 ## 1. 一句话结论
@@ -60,10 +66,10 @@
 
 | 选项 | 参数 | 效果 |
 | --- | --- | --- |
-| 非思考（建议默认） | `thinking: {"type": "disabled"}` | 最快、最便宜；简单/中等公式足够 |
+| 非思考（可切） | `thinking: {"type": "disabled"}` | 最快、最便宜；简单/中等公式足够 |
 | 思考 low | `thinking: enabled` + `reasoning_effort: "low"` | 稍慢，复杂公式更稳 |
 | 思考 high（API 默认） | `reasoning_effort: "high"` | 更慢，难题更准 |
-| 思考 max | `reasoning_effort: "max"` | 最慢（可能 10–30s），最难公式才用 |
+| **思考 max（已确认默认）** | `reasoning_effort: "max"` | 最慢（10–60s），质量优先；难公式首选 |
 | 换模型 | `deepseek-v4-pro` | 更强更贵，适合很难的推导 |
 
 注意：思考模式下 `temperature` 不生效；`deepseek-flash` 非思考模式 `top_p` 固定 1.0。
@@ -192,9 +198,10 @@ Cmd+E
 
 ## 9. 延迟与成本
 
-- 非思考模式，输出 512 token 以内，预计总延迟 1–3s（手动触发可接受）；prefill 32k 约 0.5–1.5s，缓存命中更快。
-- 单次成本（flash 非高峰，32k 上下文 + 200 输出）≈ $0.0048 + $0.00012 ≈ **$0.005/次**；每天 100 次 ≈ $0.5。
-- 若默认改成思考 `max`，单次会明显变慢（秒级到十几秒）且输出 token 更多；建议只对难公式用。
+- 默认思考 `max`：简单公式约 5–15s，复杂公式 20–60s（手动触发可接受）；prefill 32k 约 0.5–1.5s，缓存命中更快。
+- `maxTokens` 默认 8192（思考模式需要给推理留空间），`timeoutMs` 默认 90s。
+- 单次成本（flash 非高峰，32k 输入 + 约 2–5k 思考/输出 token）粗算 **$0.01 上下/次**；每天 100 次 ≈ $1。
+- 若觉得慢：设置里把 `reasoningEffort` 改成 `none` 即可切回 1–3s 的快速模式，不用改代码。
 
 ## 10. 里程碑
 
@@ -229,13 +236,13 @@ agent-complete/
 配置项（`package.json` → `contributes.configuration`）：
 
 - `agentComplete.model`：默认 `deepseek-flash`
-- `agentComplete.reasoningEffort`：`none | low | high | max`，默认 `none`（非思考）
-- `agentComplete.maxTokens`：默认 `512`
-- `agentComplete.temperature`：默认 `0.2`
+- `agentComplete.reasoningEffort`：`none | low | high | max`，默认 `max`（思考模式）
+- `agentComplete.maxTokens`：默认 `8192`
+- `agentComplete.temperature`：默认 `0.2`（思考模式下不生效）
 - `agentComplete.contextTokens`：默认 `32000`，范围 1000–128000
 - `agentComplete.formulaStyle`：`auto | inline | display`，默认 `auto`
 - `agentComplete.languages`：默认 `["markdown", "latex", "tex", "python"]`
-- `agentComplete.timeoutMs`：默认 `15000`
+- `agentComplete.timeoutMs`：默认 `90000`
 
 ## 12. 风险与坑
 
@@ -252,9 +259,10 @@ agent-complete/
 
 ## 13. 待确认
 
-1. 模型与思考强度默认值：`deepseek-flash` + 非思考（快，建议）？还是你说的 "flash max"（`deepseek-flash` + `reasoning_effort: max`，慢很多）？两种都可以做成设置项，只差默认值。
-2. 远程仓库：本机没有 GitHub 凭证（见第 15 节），需要你登录后我才能创建；用 GitHub 还是 Gitee？仓库名用 `notes-writing`？私有还是公开？
-3. 计划确认后是否开工 M1？
+1. 远程仓库已建好并推送 M0：https://github.com/JianzheLi/notes-writing（private）。
+2. 默认思考强度已按你的要求设为 `max`；如果实际用起来太慢，设置里改成 `none` 即可（不用改代码）。
+3. 开发流程与分工见 [DEV-PLAN.md](DEV-PLAN.md)，请确认里程碑划分与"先本地验收、再 push 远程"的规则。
+4. 计划确认后是否开工 M1？
 
 ## 14. 决策记录
 
@@ -268,13 +276,13 @@ agent-complete/
 | 2026-11-04 | 语言：markdown、latex、tex、python |
 | 2026-11-04 | 不做自动触发（仅手动快捷键） |
 | 2026-11-04 | FIM 用于 `.py` 代码续写（M2），公式生成用 Chat Completions |
+| 2026-11-04 | 默认思考强度 `max`（flash + thinking enabled + reasoning_effort max）；maxTokens 8192、timeout 90s |
 | 2026-11-04 | git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>` |
+| 2026-11-04 | 远程仓库 GitHub `JianzheLi/notes-writing`（private），M0 已推送 |
 
-## 15. 远程仓库状态
+## 15. 远程仓库
 
-- 本机检查结果：没有 `gh` / `glab`、没有 `~/.ssh` 密钥、没有 `GH_TOKEN` 等环境变量、没有全局 git 凭证助手 → **我无法自动链接账户创建远程仓库**。
-- 本会话的 bash 沙箱也不能写 `$HOME`，所以 `gh auth login` / `git config --global` 这类操作需要你在自己的终端里完成。
-- 你完成登录后，我这边一条命令就能创建并推送：
-  - GitHub：`brew install gh` → `gh auth login` → 我执行
-    `gh repo create <名字> --private --source=. --remote=origin --push`
-  - 或你在网页建空仓库，把 URL 给我，我 `git remote add origin …` 后 push（前提是本机已有 push 凭证）。
+- 已创建并推送：**https://github.com/JianzheLi/notes-writing**（private，main 分支）
+- 本机 GitHub CLI 已登录（账号 `JianzheLi`，token 存在 macOS keyring）
+- 每个 milestone 完成后：本地验收通过 → commit 到 main → `git push` → 打 tag（`m0`、`m1`…）
+- 开发流程与子智能体分工见 [DEV-PLAN.md](DEV-PLAN.md)

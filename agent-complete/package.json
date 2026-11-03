@@ -67,8 +67,8 @@
             "high",
             "max"
           ],
-          "default": "none",
-          "description": "思考强度：none = 非思考模式（快，建议默认）；low/high/max = 开启思考，越高质量越好但越慢越贵。"
+          "default": "max",
+          "description": "思考强度：none = 非思考模式（快）；low/high/max = 开启思考，越高质量越好但越慢越贵；默认 max（质量优先）。"
         },
         "agentComplete.baseUrl": {
           "type": "string",
@@ -77,10 +77,10 @@
         },
         "agentComplete.maxTokens": {
           "type": "number",
-          "default": 512,
+          "default": 8192,
           "minimum": 64,
-          "maximum": 4096,
-          "description": "单次生成最多输出 token 数（公式一般 512 足够）。"
+          "maximum": 16384,
+          "description": "单次生成最多输出 token 数（思考模式需要给推理留空间，默认 8192）。"
         },
         "agentComplete.temperature": {
           "type": "number",
@@ -91,9 +91,9 @@
         },
         "agentComplete.timeoutMs": {
           "type": "number",
-          "default": 15000,
+          "default": 90000,
           "minimum": 1000,
-          "description": "单次请求超时时间（毫秒）。"
+          "description": "单次请求超时时间（毫秒）；max 思考档较慢，默认 90s。"
         },
         "agentComplete.contextTokens": {
           "type": "number",
