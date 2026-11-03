@@ -1,24 +1,33 @@
 # agent-complete 插件计划（VSCode · Cmd+E · DeepSeek）
 
-- 状态：草案 v0.3（计划迭代中；M0 骨架已就绪，M1 未开工）
-- 日期：2026-11-03（v0.3 更新：2026-11-04）
+- 状态：草案 v0.4（计划迭代中；M0 骨架已就绪，M1 未开工）
+- 日期：2026-11-03（v0.4 更新：2026-11-04）
 - 仓库：`notes-writing/`（分支 main，git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>`）
 - 代码：`notes-writing/agent-complete/`
-- 已确认：快捷键 `Cmd+E`；上下文默认 8k；语言 `markdown / latex / tex / python`；仅手动触发；
-  主场景 = 写完文字描述后让 AI 写公式（行内 / 行间）；必须做简单语法检查。
+- 已确认：快捷键 `Cmd+E`；上下文默认 32k、配置上限 128k；语言 `markdown / latex / tex / python`；
+  仅手动触发；主场景 = 写完文字描述后让 AI 写公式（行内 / 行间）；必须做简单语法检查；
+  行内/行间 auto + 两个强制命令。
 
-## 0. v0.2 → v0.3 主要变化
+## 0. 版本变化
 
-1. **场景换了**：从"Copilot 式代码补全"改为"写完文字描述 → 按 Cmd+E → AI 写出 LaTeX 公式"，这是**生成任务**，不是光标续写，所以主接口从 FIM 换成 **Chat Completions（非思考模式）**。
-2. `.py` 的代码续写仍保留为第二模式（M2，用 FIM 接口）。
+**v0.2 → v0.3**
+
+1. 场景换了：从"Copilot 式代码补全"改为"写完文字描述 → 按 Cmd+E → AI 写出 LaTeX 公式"，这是**生成任务**，主接口从 FIM 换成 **Chat Completions（非思考模式）**。
+2. `.py` 的代码续写保留为第二模式（M2，用 FIM 接口）。
 3. 行内 / 行间公式自动判定 + 设置项 + 强制命令。
 4. 增加输出后处理与**简单语法检查**（`$`、`{}`、`\left/\right`、`\begin/\end`），失败自动重试一次。
-5. 上下文上限说明更新：DeepSeek 模型窗口 **1M tokens**，插件默认 8k，配置上限 32k。
-6. 快捷键定为 `Cmd+E`；git 身份已配置并 amend。
+5. 快捷键定为 `Cmd+E`；git 身份已配置并 amend。
+
+**v0.3 → v0.4**
+
+6. 上下文默认从 8k 提高到 **32k**，配置上限 **128k**。
+7. 补充"FIM 是什么、框架一般怎么用"的说明。
+8. 补充模型与思考强度选项（`deepseek-flash` / `deepseek-v4-pro`；`none/low/high/max`）。
+9. 远程仓库：本机没有 GitHub 凭证，需要用户登录后由我创建（见第 15 节）。
 
 ## 1. 一句话结论
 
-可行。做一个**生成式公式助手**：在 Markdown / LaTeX 里写完文字描述，按 `Cmd+E`，插件把上下文发给 `deepseek-flash`（非思考模式），拿到 LaTeX 公式，做简单语法检查后以 ghost text 显示，`Tab` 接受。手动触发，等待 2–5 秒可接受。
+可行。做一个**生成式公式助手**：在 Markdown / LaTeX 里写完文字描述，按 `Cmd+E`，插件把上下文发给 `deepseek-flash`，拿到 LaTeX 公式，做简单语法检查后以 ghost text 显示，`Tab` 接受。手动触发，等待 2–5 秒可接受。
 
 ## 2. 使用场景
 
@@ -46,6 +55,24 @@
 - 非思考模式 `max_tokens` 默认 8K；思考模式默认 64K。
 - 价格（flash）：输入 cache miss 非高峰 $0.15/1M、高峰 $0.3/1M；cache hit 非高峰 $0.003/1M；输出非高峰 $0.6/1M、高峰 $1.2/1M。高峰 = 周一至周五 UTC 01:00–04:00、06:00–10:00。
 - FIM Completion（Beta）：仅非思考模式，`POST https://api.deepseek.com/beta/completions`，参数 `prompt` + `suffix`。
+
+### 模型与思考强度选项
+
+| 选项 | 参数 | 效果 |
+| --- | --- | --- |
+| 非思考（建议默认） | `thinking: {"type": "disabled"}` | 最快、最便宜；简单/中等公式足够 |
+| 思考 low | `thinking: enabled` + `reasoning_effort: "low"` | 稍慢，复杂公式更稳 |
+| 思考 high（API 默认） | `reasoning_effort: "high"` | 更慢，难题更准 |
+| 思考 max | `reasoning_effort: "max"` | 最慢（可能 10–30s），最难公式才用 |
+| 换模型 | `deepseek-v4-pro` | 更强更贵，适合很难的推导 |
+
+注意：思考模式下 `temperature` 不生效；`deepseek-flash` 非思考模式 `top_p` 固定 1.0。
+
+### FIM 是什么、框架一般怎么用
+
+- **FIM（Fill-In-The-Middle）**：把"光标前文本"作为 `prompt`、"光标后文本"作为 `suffix` 一起给模型，让它生成中间部分。Copilot 式代码补全就是这种模式。
+- **框架和模型交互的常见分工**：代码/文本**续写**用 FIM（快、便宜、符合补全语义）；**指令式生成**（"按这段描述写公式"）用 Chat Completions（能下规则、能控制格式、能重试修正）。
+- **本项目**：公式生成（主场景）用 Chat Completions；`.py` 代码续写（M2）用 FIM；两者共用同一套 UI（`Cmd+E` → ghost text → `Tab`）。
 
 ### 接口
 
@@ -79,18 +106,18 @@ POST https://api.deepseek.com/beta/completions
 
 ## 4. 上下文多长、上限多少
 
-- **理论上限**：模型窗口 1M tokens（输入+输出），单次输出上限 384K；即最长可接近 1M 上下文。
-- **插件默认 8k**（≈ 6k–10k 汉字 ≈ 论文一节 / 笔记一篇；或 600–800 行代码）。
-- **建议区间**：公式生成 8k 足够，最多 16k；配置上限设 32k。
-- **再长不划算**：prefill 变慢、成本上升（cache miss 输入 $0.15/1M），而公式只需要"当前小节 + 前面几段描述 + 宏定义/符号 + 前面公式"，8k 覆盖得很好。
-- 前缀缓存：相同前缀重复触发价格只有 1/50（cache hit $0.003/1M），所以上下文按"稳定内容在前、变化内容在后"排列。
+- **API 理论上限**：模型窗口 1M tokens（输入+输出合计），单次输出上限 384K。
+- **插件默认 32k，配置上限 128k**（已确认）。32k ≈ 2–4 万汉字（约论文 1–2 节）或 2000–3000 行代码；128k ≈ 8–16 万汉字。
+- **实际建议**：公式生成常用 8k–32k 就够；128k 只在需要整章/多文件上下文时开。
+- **成本/延迟**：32k cache miss 输入（flash 非高峰）≈ $0.0048/次，128k ≈ $0.019/次；prefill 时间随长度增长，首次请求明显变慢，重复请求靠前缀缓存便宜很多。
+- **前缀缓存**：相同前缀重复触发价格只有 1/50（cache hit $0.003/1M），上下文按"稳定内容在前、变化内容在后"排列。
 
 ## 5. 架构（两段式）
 
 ```
 Cmd+E
   → 采集上下文 + 判定行内/行间
-  → 调 DeepSeek（chat 非思考；M2 的 .py 用 FIM）
+  → 调 DeepSeek Chat Completions（非思考；M2 的 .py 用 FIM）
   → 后处理（trim、去围栏、行内/行间格式校正）
   → 简单语法检查（失败 → 反馈重试 1 次 → 仍失败则放弃）
   → pending（记录 uri / version / 光标位置）
@@ -141,7 +168,7 @@ Cmd+E
 - 剥掉模型偶尔加的 ```` ```latex ... ``` ```` 围栏。
 - 按行内/行间模式做格式校正（补/去 `$`、`$$` 与空行）。
 
-**简单语法检查**（你的要求，M1 就做）
+**简单语法检查**（M1 就做）
 
 | 检查项 | 规则 |
 | --- | --- |
@@ -158,15 +185,16 @@ Cmd+E
 
 1. 光标在 `$...$` 内 → 行内（只输出环境内内容）
 2. 光标在 `$$...$$`、`\[...\]`、`equation/align` 等环境内 → 行间（只输出环境内内容）
-3. 有选区 → 用选区作为描述，生成后**替换选区**（行内/行间按第 2 步设置或自动判断）
+3. 有选区 → 用选区作为描述，生成后**替换选区**（行内/行间按设置或自动判断）
 4. 无数学环境：光标在行尾或空行 → 行间块；光标在句子中间 → 行内
 5. 设置项 `agentComplete.formulaStyle = auto | inline | display`（默认 auto）
 6. 提供两个命令面板命令用于强制：`Agent Complete: 生成行内公式`、`Agent Complete: 生成行间公式`（不额外占快捷键）
 
 ## 9. 延迟与成本
 
-- 非思考模式，输出 512 token 以内，预计总延迟 1–3s（手动触发可接受）；prefill 8k 约 0.3–1s，缓存命中更快。
-- 单次成本（flash 非高峰）：8k 输入 cache miss ≈ $0.0012 + 200 输出 ≈ $0.00012 ≈ **$0.0013/次**；每天 100 次 ≈ $0.13。
+- 非思考模式，输出 512 token 以内，预计总延迟 1–3s（手动触发可接受）；prefill 32k 约 0.5–1.5s，缓存命中更快。
+- 单次成本（flash 非高峰，32k 上下文 + 200 输出）≈ $0.0048 + $0.00012 ≈ **$0.005/次**；每天 100 次 ≈ $0.5。
+- 若默认改成思考 `max`，单次会明显变慢（秒级到十几秒）且输出 token 更多；建议只对难公式用。
 
 ## 10. 里程碑
 
@@ -201,41 +229,52 @@ agent-complete/
 配置项（`package.json` → `contributes.configuration`）：
 
 - `agentComplete.model`：默认 `deepseek-flash`
-- `agentComplete.thinking`：默认 `false`（非思考模式，快）
+- `agentComplete.reasoningEffort`：`none | low | high | max`，默认 `none`（非思考）
 - `agentComplete.maxTokens`：默认 `512`
 - `agentComplete.temperature`：默认 `0.2`
-- `agentComplete.contextTokens`：默认 `8000`，范围 1000–32000
+- `agentComplete.contextTokens`：默认 `32000`，范围 1000–128000
 - `agentComplete.formulaStyle`：`auto | inline | display`，默认 `auto`
 - `agentComplete.languages`：默认 `["markdown", "latex", "tex", "python"]`
-- `agentComplete.timeoutMs`：默认 `10000`
+- `agentComplete.timeoutMs`：默认 `15000`
 
 ## 12. 风险与坑
 
-1. **思考模式默认开**：不显式关会慢很多且贵；`thinking: {type: "disabled"}` 必须传。
+1. **思考模式默认开**：不显式关会慢很多且贵；非思考时必须传 `thinking: {type: "disabled"}`。
 2. **行内/行间判错**：提供强制命令兜底。
 3. **公式语法检查误判**：`\$`、`\{`、`\\` 等转义要正确忽略，否则会把合法公式判死。
 4. **notebook 支持未知**：`.ipynb` 单元格能否用 ghost text 与 `editor.action.inlineSuggest.trigger` 要先验证，不行降级为直接插入。
 5. **FIM 仅非思考模式**：`.py` 模式不要传 thinking 参数。
 6. **中文/LaTeX 转义**：prompt 里别让模型把中文放进 `\text{}` 或漏反斜杠；后处理检查 `\` 合法性（轻量）。
-7. **前缀缓存**：上下文顺序要稳定（文件头/宏定义在前，光标前内容在后），否则缓存失效变慢。
+7. **前缀缓存**：上下文顺序要稳定（宏定义/文件头在前，光标前内容在后），否则缓存失效变慢。
 8. **无 Copilot 冲突**：本机没装 Copilot；LaTeX Workshop 暂未占用 Cmd+E，开工前用 Keyboard Shortcuts 再确认一次。
 9. **隐私**：代码/笔记会发到 DeepSeek 云端；保留排除 glob（`.env` 等）。
+10. **32k/128k 上下文**：默认 32k 会让首次请求 prefill 变慢（0.5–1.5s），缓存后快；128k 只在必要时开。
 
 ## 13. 待确认
 
-1. 行内/行间默认 `auto`（自动判断）+ 两个强制命令，可以吗？
-2. `.py` 里用 FIM 续写代码（M2），还是先不做、只做公式？
-3. 默认非思考模式（快、便宜），复杂公式需要时再开 thinking，可以吗？
-4. 计划确认后是否开工 M1？
+1. 模型与思考强度默认值：`deepseek-flash` + 非思考（快，建议）？还是你说的 "flash max"（`deepseek-flash` + `reasoning_effort: max`，慢很多）？两种都可以做成设置项，只差默认值。
+2. 远程仓库：本机没有 GitHub 凭证（见第 15 节），需要你登录后我才能创建；用 GitHub 还是 Gitee？仓库名用 `notes-writing`？私有还是公开？
+3. 计划确认后是否开工 M1？
 
 ## 14. 决策记录
 
 | 日期 | 决策 |
 | --- | --- |
 | 2026-11-04 | 快捷键 `Cmd+E` |
-| 2026-11-04 | 上下文默认 8k；模型窗口 1M，2026 文档确认 |
+| 2026-11-04 | 上下文默认 32k，配置上限 128k |
 | 2026-11-04 | 主场景：写完文字描述 → 生成公式（行内/行间） |
+| 2026-11-04 | 行内/行间 auto + 两个强制命令 |
 | 2026-11-04 | 做简单语法检查（`$`/`{}`/`\left`/`\begin`），失败重试 1 次 |
 | 2026-11-04 | 语言：markdown、latex、tex、python |
 | 2026-11-04 | 不做自动触发（仅手动快捷键） |
+| 2026-11-04 | FIM 用于 `.py` 代码续写（M2），公式生成用 Chat Completions |
 | 2026-11-04 | git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>` |
+
+## 15. 远程仓库状态
+
+- 本机检查结果：没有 `gh` / `glab`、没有 `~/.ssh` 密钥、没有 `GH_TOKEN` 等环境变量、没有全局 git 凭证助手 → **我无法自动链接账户创建远程仓库**。
+- 本会话的 bash 沙箱也不能写 `$HOME`，所以 `gh auth login` / `git config --global` 这类操作需要你在自己的终端里完成。
+- 你完成登录后，我这边一条命令就能创建并推送：
+  - GitHub：`brew install gh` → `gh auth login` → 我执行
+    `gh repo create <名字> --private --source=. --remote=origin --push`
+  - 或你在网页建空仓库，把 URL 给我，我 `git remote add origin …` 后 push（前提是本机已有 push 凭证）。
