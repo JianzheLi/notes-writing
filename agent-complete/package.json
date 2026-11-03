@@ -1,0 +1,128 @@
+{
+  "name": "agent-complete",
+  "displayName": "Agent Complete",
+  "description": "Keybinding-triggered inline completion powered by DeepSeek FIM (deepseek-flash).",
+  "version": "0.1.0",
+  "publisher": "local",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Machine Learning",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "agentComplete.trigger",
+        "title": "生成补全",
+        "category": "Agent Complete"
+      },
+      {
+        "command": "agentComplete.setApiKey",
+        "title": "设置 DeepSeek API Key",
+        "category": "Agent Complete"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "agentComplete.trigger",
+        "key": "ctrl+alt+enter",
+        "mac": "cmd+alt+enter",
+        "when": "editorTextFocus && !editorHasSelection"
+      }
+    ],
+    "configuration": {
+      "title": "Agent Complete",
+      "properties": {
+        "agentComplete.model": {
+          "type": "string",
+          "default": "deepseek-flash",
+          "description": "DeepSeek 模型名（FIM 支持 deepseek-flash / deepseek-v4-pro）。"
+        },
+        "agentComplete.baseUrl": {
+          "type": "string",
+          "default": "https://api.deepseek.com/beta",
+          "description": "DeepSeek FIM 接口的 base URL。"
+        },
+        "agentComplete.maxTokens": {
+          "type": "number",
+          "default": 128,
+          "minimum": 16,
+          "maximum": 512,
+          "description": "单次补全最多生成的 token 数。"
+        },
+        "agentComplete.temperature": {
+          "type": "number",
+          "default": 0.2,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "采样温度，补全建议偏低。"
+        },
+        "agentComplete.timeoutMs": {
+          "type": "number",
+          "default": 8000,
+          "minimum": 1000,
+          "description": "单次请求超时时间（毫秒）。"
+        },
+        "agentComplete.contextTokens": {
+          "type": "number",
+          "default": 8000,
+          "minimum": 1000,
+          "maximum": 32000,
+          "description": "上下文预算（估算 token 数，按 3.5 字符/token 换算成字符）。"
+        },
+        "agentComplete.languages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "typescript",
+            "javascript",
+            "typescriptreact",
+            "javascriptreact",
+            "python",
+            "go",
+            "rust",
+            "java",
+            "c",
+            "cpp"
+          ],
+          "description": "允许触发补全的语言 id 列表。"
+        },
+        "agentComplete.excludeGlobs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/.env",
+            "**/.env.*",
+            "**/*secret*",
+            "**/*.pem",
+            "**/*.key"
+          ],
+          "description": "命中这些 glob 的文件不会上传代码（相对工作区路径匹配）。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "bench": "node scripts/bench.mjs",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/vscode": "^1.144.0",
+    "@vscode/vsce": "^4.1.0",
+    "typescript": "^7.0.2"
+  }
+}
