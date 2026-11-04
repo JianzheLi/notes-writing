@@ -42,6 +42,16 @@
         "command": "agentComplete.diagnostics",
         "title": "网络诊断",
         "category": "Agent Complete"
+      },
+      {
+        "command": "agentComplete.acceptSelectionPreview",
+        "title": "接受选区替换（Tab）",
+        "category": "Agent Complete"
+      },
+      {
+        "command": "agentComplete.cancelSelectionPreview",
+        "title": "取消选区替换（Esc）",
+        "category": "Agent Complete"
       }
     ],
     "keybindings": [
@@ -50,6 +60,16 @@
         "key": "ctrl+alt+enter",
         "mac": "cmd+e",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "agentComplete.acceptSelectionPreview",
+        "key": "tab",
+        "when": "editorTextFocus && agentComplete.selectionPreviewActive"
+      },
+      {
+        "command": "agentComplete.cancelSelectionPreview",
+        "key": "escape",
+        "when": "editorTextFocus && agentComplete.selectionPreviewActive"
       }
     ],
     "configuration": {
@@ -120,7 +140,7 @@
             "display"
           ],
           "default": "auto",
-          "description": "公式样式：auto 按光标/选区自动判断，inline 强制行内，display 强制行间。"
+          "description": "公式样式：auto 由模型结合上下文决定行内/行间（选区按整行/句中自动判断）；inline 强制行内；display 强制行间。"
         },
         "agentComplete.languages": {
           "type": "array",

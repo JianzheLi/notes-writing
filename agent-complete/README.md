@@ -5,9 +5,9 @@
 ## 当前状态（M2：选区替换与判定完善）
 
 - ✅ `Cmd+E` 触发：取光标前文/后文（默认 32k token 预算）→ DeepSeek Chat Completions（`deepseek-flash`，默认思考强度 `max`）→ 后处理 → ghost text
-- ✅ 行内/行间判定：在 `$...$`、`\(...\)` 里继续补全；在 `$$`、`\[...\]`、`equation/align*` 等数学环境里继续补全；否则按"行尾→行间、句中→行内"启发式
+- ✅ 行内/行间判定：在 `$...$`、`\(...\)` 里继续补全；在 `$$`、`\[...\]`、`equation/align*` 等数学环境里继续补全；其余情况交给模型看上下文决定（`formulaStyle=auto`），不再硬判“行尾=行间”
 - ✅ 判定健壮性：数学环境白名单（`figure/table/document` 不误判）、LaTeX `%` 注释、Markdown 代码块/行内代码、`\$` 转义、金额 `$100` 与未闭合 `$` 的启发式
-- ✅ 选区替换：选中一段描述按 `Cmd+E`，生成公式后直接替换选区（`Cmd+Z` 可撤销；多行/整行选区默认行间，句中短语默认行内）
+- ✅ 选区替换预览：选中一段描述按 `Cmd+E`，原文标红、替换内容标绿，**`Tab` 才真正替换 / `Esc` 取消**（多行/整行选区默认行间，句中短语默认行内；接受后 `Cmd+Z` 可撤销）
 - ✅ 强制命令：`Agent Complete: 生成行内公式` / `Agent Complete: 生成行间公式`
 - ✅ 思考强度可配（`none/low/high/max`），默认 `max`
 - ✅ 状态栏显示生成中 + 已耗时；失败只提示不弹窗
@@ -21,7 +21,7 @@
 3. 在新窗口按 `Cmd+Shift+P` → 执行 **`Agent Complete: 设置 DeepSeek API Key`**，粘贴 key（存 SecretStorage，不会写进文件）。
 4. 打开一个 `.md` 或 `.tex` 文件，写完一句描述、把光标放在要插入公式的位置，按 **`Cmd+E`**。
 5. 公式以 ghost text 出现后：`Tab` 接受、`Esc` 取消、`Cmd+→` 逐词接受。
-6. 选区替换：选中一句描述（整行或句中短语都行）再按 `Cmd+E`，生成后直接替换选区；`Cmd+Z` 撤销。
+6. 选区替换：选中一句描述（整行或句中短语都行）再按 `Cmd+E`，原文标红、替换内容标绿；`Tab` 接受替换，`Esc` 取消。
 
 ## 配置项
 
@@ -33,7 +33,7 @@
 | `agentComplete.maxTokens` | `8192` | 单次最大输出 |
 | `agentComplete.temperature` | `0.2` | 仅非思考模式生效 |
 | `agentComplete.timeoutMs` | `90000` | 请求超时 |
-| `agentComplete.formulaStyle` | `auto` | `auto / inline / display` |
+| `agentComplete.formulaStyle` | `auto` | `auto` 由模型判断行内/行间；`inline / display` 强制 |
 | `agentComplete.languages` | markdown / latex / tex / python | 允许触发的语言 |
 | `agentComplete.baseUrl` | `https://api.deepseek.com` | 代理/网关时改这里 |
 | `agentComplete.proxy` | 空 | 手动指定代理（优先于自动检测），如 `socks5://127.0.0.1:13659` |

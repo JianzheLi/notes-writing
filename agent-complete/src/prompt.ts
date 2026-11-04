@@ -19,6 +19,8 @@ function styleHint(math: MathContext, replacesSelection: boolean): string {
   }
 
   switch (math.mode) {
+    case 'auto':
+      return '根据描述在上下文中的位置自动决定：公式是句子的一部分（前后还有文字）→ 行内公式 $...$；描述已经独立成句/单独成段 → 行间公式 $$...$$。只输出要插入的完整片段（含定界符），不要解释。';
     case 'inline':
       return '写一个行内公式，用 $...$ 包裹，插入在光标处。';
     case 'display':

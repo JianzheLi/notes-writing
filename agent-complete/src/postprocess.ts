@@ -72,6 +72,8 @@ function isEnvironmentBlock(text: string): boolean {
 
 /**
  * 把模型返回的文本整理成要插入/替换的文本。
+ * - auto：模型输出里带 `$$`/`\[` 就当行间，带 `$`/`\(` 就当行内；
+ *   都没带时按光标前是否是空行兜底
  * - inline：$...$
  * - display：独占一段的 $$...$$
  * - continue-*：光标已在公式/环境内，只返回内容本身
@@ -87,29 +89,71 @@ export function buildSuggestion(
   text = stripFences(text).trim();
   if (!text) return '';
 
-  const display = mode === 'display' || mode === 'continue-display';
   const replace = options.replace === true;
   const trailingNewlines = Math.max(0, Math.floor(options.trailingNewlines ?? 0));
 
-  if (mode === 'inline' || mode === 'display') {
-    text = stripDelimiters(text, display);
-    if (!text) return '';
-
-    if (display) {
-      if (replace) {
-        const block = isEnvironmentBlock(text) ? text : `$$\n${text}\n$$`;
-        return `${block}${'\n'.repeat(trailingNewlines)}`;
-      }
-      const lead = lineBefore.trim().length > 0 ? '\n\n' : '';
-      if (isEnvironmentBlock(text)) {
-        return `${lead}${text}\n`;
-      }
-      return `${lead}$$\n${text}\n$$\n`;
-    }
-
-    return `$${text}$`;
+  if (mode === 'continue-inline' || mode === 'continue-display') {
+    return stripDelimiters(text, mode === 'continue-display');
   }
 
-  // continue-inline / continue-display：不要重复定界符
-  return stripDelimiters(text, display);
+  if (mode === 'auto') {
+    return buildAutoSuggestion(text, lineBefore, replace, trailingNewlines);
+  }
+
+  if (mode === 'display') {
+    const content = stripDelimiters(text, true);
+    return content ? formatDisplay(content, lineBefore, replace, trailingNewlines) : '';
+  }
+
+  const content = stripDelimiters(text, false);
+  return content ? `$${content}$` : '';
+}
+
+/** auto 模式：优先按模型自己输出的定界符判断，没有再按插入位置兜底。 */
+function buildAutoSuggestion(
+  text: string,
+  lineBefore: string,
+  replace: boolean,
+  trailingNewlines: number,
+): string {
+  if (startsWithDisplay(text)) {
+    const content = stripDelimiters(text, true);
+    return content ? formatDisplay(content, lineBefore, replace, trailingNewlines) : '';
+  }
+
+  if (startsWithInline(text)) {
+    const content = stripDelimiters(text, false);
+    return content ? `$${content}$` : '';
+  }
+
+  // 模型没带定界符：行首/空行按行间插入，句中按行内插入。
+  if (lineBefore.trim().length === 0) {
+    const content = stripDelimiters(text, true);
+    return content ? formatDisplay(content, lineBefore, replace, trailingNewlines) : '';
+  }
+  const content = stripDelimiters(text, false);
+  return content ? `$${content}$` : '';
+}
+
+function startsWithDisplay(text: string): boolean {
+  return text.startsWith('$$') || text.startsWith('\\[') || isEnvironmentBlock(text);
+}
+
+function startsWithInline(text: string): boolean {
+  return text.startsWith('$') || text.startsWith('\\(');
+}
+
+function formatDisplay(
+  content: string,
+  lineBefore: string,
+  replace: boolean,
+  trailingNewlines: number,
+): string {
+  if (replace) {
+    const block = isEnvironmentBlock(content) ? content : `$$\n${content}\n$$`;
+    return `${block}${'\n'.repeat(trailingNewlines)}`;
+  }
+  const lead = lineBefore.trim().length > 0 ? '\n\n' : '';
+  if (isEnvironmentBlock(content)) return `${lead}${content}\n`;
+  return `${lead}$$\n${content}\n$$\n`;
 }

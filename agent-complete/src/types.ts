@@ -1,6 +1,7 @@
 export type FormulaStyle = 'auto' | 'inline' | 'display';
 export type ReasoningEffort = 'none' | 'low' | 'high' | 'max';
 export type FormulaMode =
+  | 'auto'
   | 'inline'
   | 'display'
   | 'continue-inline'

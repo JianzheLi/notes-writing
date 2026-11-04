@@ -59,12 +59,12 @@ export function detectMathContext(
     return { mode: 'display', insideMath: false, reason: 'forced display' };
   }
 
-  const line = document.lineAt(position.line).text;
-  const restOfLine = line.slice(position.character);
-  const atLineEnd = restOfLine.trim().length === 0;
-  return atLineEnd
-    ? { mode: 'display', insideMath: false, reason: 'line end -> display' }
-    : { mode: 'inline', insideMath: false, reason: 'mid line -> inline' };
+  // auto：不再用「行尾→行间、句中→行内」硬判，交给模型结合上下文决定。
+  return {
+    mode: 'auto',
+    insideMath: false,
+    reason: 'auto: model chooses inline/display',
+  };
 }
 
 /**

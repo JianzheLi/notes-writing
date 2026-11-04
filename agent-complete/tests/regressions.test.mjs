@@ -55,3 +55,39 @@ test('mathScan: \\begin{align} 与 \\end{align*} 按去星号名字兜底配对'
   const after = mathStateAt(text, text.length, 'latex');
   assert.deepEqual(after.envStack, []);
 });
+
+// auto 模式：行内/行间由模型输出决定，模型没带定界符时按位置兜底。
+
+test('postprocess auto: 模型输出 $$...$$ 时按行间处理', () => {
+  assert.equal(buildSuggestion('$$x^2$$', 'auto', ''), '$$\nx^2\n$$\n');
+});
+
+test('postprocess auto: 模型输出 $...$ 时按行内处理（即使在行尾）', () => {
+  assert.equal(buildSuggestion('$x^2$', 'auto', '其中方差为 '), '$x^2$');
+});
+
+test('postprocess auto: 模型输出 \\(...\\) 时按行内处理', () => {
+  assert.equal(buildSuggestion(String.raw`\(x\)`, 'auto', ''), '$x$');
+});
+
+test('postprocess auto: 模型没带定界符时按位置兜底（行首→行间，句中→行内）', () => {
+  assert.equal(buildSuggestion('x^2', 'auto', ''), '$$\nx^2\n$$\n');
+  assert.equal(buildSuggestion('x^2', 'auto', '其中 '), '$x^2$');
+});
+
+test('postprocess auto: 环境块原样插入', () => {
+  assert.equal(
+    buildSuggestion(String.raw`\begin{equation}x\end{equation}`, 'auto', ''),
+    '\\begin{equation}x\\end{equation}\n',
+  );
+});
+
+test('postprocess auto: replace 模式下行间公式不加前导空行', () => {
+  assert.equal(
+    buildSuggestion('$$x$$', 'auto', 'some text', {
+      replace: true,
+      trailingNewlines: 2,
+    }),
+    '$$\nx\n$$\n\n',
+  );
+});

@@ -18,12 +18,181 @@ interface PendingSuggestion {
   text: string;
 }
 
+interface SelectionPreview {
+  editor: vscode.TextEditor;
+  document: vscode.TextDocument;
+  selection: vscode.Selection;
+  text: string;
+  version: number;
+  removedDecoration: vscode.TextEditorDecorationType;
+  insertedDecoration: vscode.TextEditorDecorationType;
+  status: vscode.Disposable;
+  timer: NodeJS.Timeout;
+}
+
 let pending: PendingSuggestion | undefined;
 let inflight: AbortController | undefined;
+let selectionPreview: SelectionPreview | undefined;
+let cancelPreviewOnDeactivate: (() => void) | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   const out = vscode.window.createOutputChannel('Agent Complete');
   context.subscriptions.push(out);
+
+  // ---- 选区替换预览：红色标记原文，绿色预览替换文本，Tab 接受 / Esc 取消 ----
+  const clearSelectionPreview = () => {
+    const active = selectionPreview;
+    if (!active) return;
+    selectionPreview = undefined;
+    active.removedDecoration.dispose();
+    active.insertedDecoration.dispose();
+    active.status.dispose();
+    clearTimeout(active.timer);
+    void vscode.commands.executeCommand(
+      'setContext',
+      'agentComplete.selectionPreviewActive',
+      false,
+    );
+  };
+
+  const cancelSelectionPreview = (showMessage = false) => {
+    if (!selectionPreview) return;
+    clearSelectionPreview();
+    if (showMessage) {
+      vscode.window.setStatusBarMessage('$(circle-slash) 已取消选区替换', 2000);
+    }
+  };
+
+  const acceptSelectionPreview = async () => {
+    const active = selectionPreview;
+    if (!active) return;
+
+    const stillValid =
+      active.document.version === active.version &&
+      vscode.window.activeTextEditor === active.editor &&
+      active.editor.selection.isEqual(active.selection);
+
+    clearSelectionPreview();
+    if (!stillValid) {
+      vscode.window.setStatusBarMessage(
+        '$(circle-slash) Agent Complete：选区已变化，取消替换',
+        2500,
+      );
+      return;
+    }
+
+    const applied = await active.editor.edit(
+      (builder) => builder.replace(active.selection, active.text),
+      { undoStopBefore: true, undoStopAfter: true },
+    );
+    if (!applied) {
+      vscode.window.setStatusBarMessage(
+        '$(warning) Agent Complete：替换失败（文档可能已变化）',
+        4000,
+      );
+      return;
+    }
+    log(out, `已替换选区：${active.text.length} 字符`);
+    vscode.window.setStatusBarMessage(
+      `$(check) Agent Complete：已替换选区（${active.text.length} 字符）`,
+      3000,
+    );
+  };
+
+  const showSelectionPreview = (
+    editor: vscode.TextEditor,
+    selection: vscode.Selection,
+    text: string,
+  ) => {
+    cancelSelectionPreview();
+
+    const removedDecoration = vscode.window.createTextEditorDecorationType({
+      backgroundColor: new vscode.ThemeColor('diffEditor.removedTextBackground'),
+      borderColor: new vscode.ThemeColor('charts.red'),
+      border: '1px solid',
+      color: new vscode.ThemeColor('charts.red'),
+      textDecoration: 'line-through',
+      rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
+    });
+    const insertedDecoration = vscode.window.createTextEditorDecorationType({
+      after: {
+        contentText: previewLabel(text),
+        color: new vscode.ThemeColor('charts.green'),
+        backgroundColor: new vscode.ThemeColor('diffEditor.insertedTextBackground'),
+        borderColor: new vscode.ThemeColor('charts.green'),
+        border: '1px solid',
+        margin: '0 0 0 6px',
+      },
+      rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
+    });
+
+    editor.setDecorations(removedDecoration, [selection]);
+    editor.setDecorations(insertedDecoration, [selection]);
+    editor.revealRange(selection, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+
+    selectionPreview = {
+      editor,
+      document: editor.document,
+      selection,
+      text,
+      version: editor.document.version,
+      removedDecoration,
+      insertedDecoration,
+      status: vscode.window.setStatusBarMessage(
+        '$(diff) 选区替换预览：Tab 接受 / Esc 取消',
+        60000,
+      ),
+      timer: setTimeout(() => cancelSelectionPreview(), 60000),
+    };
+    void vscode.commands.executeCommand(
+      'setContext',
+      'agentComplete.selectionPreviewActive',
+      true,
+    );
+    log(out, `选区预览：Tab 接受 / Esc 取消（替换 ${text.length} 字符）`);
+  };
+
+  cancelPreviewOnDeactivate = () => clearSelectionPreview();
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('agentComplete.acceptSelectionPreview', () =>
+      acceptSelectionPreview(),
+    ),
+    vscode.commands.registerCommand('agentComplete.cancelSelectionPreview', () =>
+      cancelSelectionPreview(true),
+    ),
+    vscode.window.onDidChangeTextEditorSelection((event) => {
+      if (!selectionPreview) return;
+      if (event.textEditor !== selectionPreview.editor) {
+        cancelSelectionPreview();
+        return;
+      }
+      const current = event.selections[0];
+      if (!current || !current.isEqual(selectionPreview.selection)) {
+        cancelSelectionPreview();
+      }
+    }),
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      if (
+        selectionPreview &&
+        event.document === selectionPreview.document &&
+        event.contentChanges.length > 0
+      ) {
+        cancelSelectionPreview();
+      }
+    }),
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (selectionPreview && editor !== selectionPreview.editor) {
+        cancelSelectionPreview();
+      }
+    }),
+  );
+
+  void vscode.commands.executeCommand(
+    'setContext',
+    'agentComplete.selectionPreviewActive',
+    false,
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('agentComplete.setApiKey', async () => {
@@ -160,6 +329,8 @@ export function activate(context: vscode.ExtensionContext) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) return;
 
+    cancelSelectionPreview();
+
     const document = editor.document;
     const selection = editor.selection;
     const selectedText = selection.isEmpty ? '' : document.getText(selection);
@@ -201,6 +372,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     inflight?.abort();
+    pending = undefined;
     const controller = new AbortController();
     inflight = controller;
 
@@ -283,7 +455,7 @@ export function activate(context: vscode.ExtensionContext) {
         out,
         `生成 ${result.elapsedMs}ms | mode=${math.mode} | ` +
           `上下文 ${codeContext.prefix.length}+${codeContext.suffix.length} 字符 | ` +
-          `输出 ${text.length} 字符 | proxy=${result.proxySource ?? 'direct'} | ` +
+          `输出 ${text.length} 字符（${suggestionStyle(text)}） | proxy=${result.proxySource ?? 'direct'} | ` +
           `usage=${JSON.stringify(result.usage)}`,
       );
 
@@ -328,25 +500,10 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      // 有选区：直接替换（ghost text 的 range 不能跨行，这里统一走直接编辑，可 Cmd+Z 撤销）。
+      // 有选区：红色标记原文 + 绿色预览替换文本，Tab 才真正替换。
+      // （ghost text 的 range 不能跨行，所以这里用装饰器做预览，不直接改文档。）
       if (hasSelection) {
-        pending = undefined;
-        const applied = await editor.edit(
-          (builder) => builder.replace(selection, text),
-          { undoStopBefore: true, undoStopAfter: true },
-        );
-        if (!applied) {
-          vscode.window.setStatusBarMessage(
-            '$(warning) Agent Complete：替换选区失败（文档可能已变化）',
-            4000,
-          );
-          return;
-        }
-        log(out, `已替换选区：${text.length} 字符`);
-        vscode.window.setStatusBarMessage(
-          `$(check) Agent Complete：已替换选区（${text.length} 字符）`,
-          3000,
-        );
+        showSelectionPreview(editor, selection, text);
         return;
       }
 
@@ -397,6 +554,23 @@ export function deactivate() {
   inflight?.abort();
   inflight = undefined;
   pending = undefined;
+  cancelPreviewOnDeactivate?.();
+  cancelPreviewOnDeactivate = undefined;
+}
+
+/** 日志里标一下模型最终选的是行内还是行间。 */
+function suggestionStyle(text: string): string {
+  const trimmed = text.replace(/^\n+/, '');
+  if (trimmed.startsWith('$$') || trimmed.startsWith('\\begin')) return 'display';
+  if (trimmed.startsWith('$') || trimmed.startsWith('\\(')) return 'inline';
+  return 'unknown';
+}
+
+/** 绿色预览只占一行：换行用 ⏎ 表示，过长截断。 */
+function previewLabel(text: string): string {
+  const flat = text.replace(/\r?\n/g, ' ⏎ ').replace(/[ \t]+/g, ' ').trim();
+  const value = flat || '（空）';
+  return value.length > 160 ? `${value.slice(0, 159)}…` : value;
 }
 
 /** 选区结尾有几个换行（替换后保持原来的段落间距）。 */
