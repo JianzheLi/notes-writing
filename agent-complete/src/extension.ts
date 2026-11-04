@@ -571,29 +571,87 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.setStatusBarMessage(
           result.finishReason === 'length'
             ? '$(circle-slash) TAME：模型输出被截断（max_tokens 不足）'
-            : '$(circle-slash) TAME：模型没有给出公式',
-          3500,
+            : result.finishReason && result.finishReason !== 'stop'
+              ? `$(circle-slash) TAME：模型输出未正常结束（${result.finishReason}）`
+              : '$(circle-slash) TAME：模型没有给出公式',
+          4000,
         );
         return;
       }
 
-      let check = checkLatexSuggestion(text, math.mode);
-      let issues = withTruncationIssue(check.issues, result.finishReason);
-      if (issues.length === 0) log(out, '语法检查通过');
+      const finishReason = result.finishReason;
+      const truncated = finishReason === 'length';
+      const otherNonStop =
+        finishReason !== undefined &&
+        finishReason !== 'stop' &&
+        finishReason !== 'length';
 
-      if (issues.length > 0) {
-        log(out, `语法检查未通过（第 1 次）：${formatIssues(issues)}`);
+      if (otherNonStop) {
+        log(out, `模型输出未正常结束：finish_reason=${finishReason}`);
+        vscode.window.setStatusBarMessage(
+          `$(circle-slash) TAME：模型输出未正常结束（${finishReason}），已放弃`,
+          6000,
+        );
+        return;
+      }
+
+      let issues = checkLatexSuggestion(text, math.mode).issues;
+      if (!truncated && issues.length === 0) log(out, '语法检查通过');
+
+      if (truncated || issues.length > 0) {
+        if (truncated && requestOptions.maxTokens >= 16384) {
+          log(
+            out,
+            `输出被截断，max_tokens 已达上限（${requestOptions.maxTokens}），不再重试`,
+          );
+          vscode.window.setStatusBarMessage(
+            '$(circle-slash) TAME：输出被截断（max_tokens 已达上限，可降低思考强度）',
+            6000,
+          );
+          return;
+        }
+
+        const retryIssues: LatexIssue[] = truncated
+          ? [
+              ...issues,
+              {
+                code: 'truncated',
+                message: '上一次输出被截断，请只输出完整、简洁的公式',
+              },
+            ]
+          : issues;
+        const retryMaxTokens = truncated
+          ? Math.min(
+              16384,
+              Math.max(
+                requestOptions.maxTokens + 1024,
+                requestOptions.maxTokens * 2,
+              ),
+            )
+          : requestOptions.maxTokens;
+
+        log(
+          out,
+          `${truncated ? '输出被截断' : '语法检查未通过'}（第 1 次），` +
+            `重试 max_tokens=${retryMaxTokens}` +
+            (truncated ? `（原 ${requestOptions.maxTokens}）` : '') +
+            (issues.length > 0 ? `：${formatIssues(issues)}` : ''),
+        );
+
         attempts = 2;
         const retryStatus = vscode.window.setStatusBarMessage(
-          '$(sync~spin) TAME 语法检查未通过，正在重试…',
+          truncated
+            ? '$(sync~spin) TAME 输出被截断，调大 max_tokens 重试中…'
+            : '$(sync~spin) TAME 语法检查未通过，正在重试…',
         );
         try {
           result = await chatCompletion({
             ...requestOptions,
+            maxTokens: retryMaxTokens,
             messages: [
               ...messages,
               { role: 'assistant', content: result.content },
-              { role: 'user', content: buildRetryMessage(issues) },
+              { role: 'user', content: buildRetryMessage(retryIssues) },
             ],
           });
         } finally {
@@ -613,16 +671,25 @@ export function activate(context: vscode.ExtensionContext) {
         if (!text) {
           vscode.window.setStatusBarMessage(
             result.finishReason === 'length'
-              ? '$(circle-slash) TAME：模型输出被截断（max_tokens 不足）'
+              ? '$(circle-slash) TAME：重试后输出仍被截断'
               : '$(circle-slash) TAME：重试后模型仍然没有给出公式',
-            3500,
+            5000,
           );
           return;
         }
 
-        check = checkLatexSuggestion(text, math.mode);
-        issues = withTruncationIssue(check.issues, result.finishReason);
-        if (issues.length === 0) log(out, '语法检查通过（重试后）');
+        if (result.finishReason && result.finishReason !== 'stop') {
+          log(out, `重试后输出未正常结束：finish_reason=${result.finishReason}`);
+          vscode.window.setStatusBarMessage(
+            result.finishReason === 'length'
+              ? '$(circle-slash) TAME：重试后输出仍被截断，已放弃（可调大 maxTokens 或降低 effort）'
+              : `$(circle-slash) TAME：重试后输出未正常结束（${result.finishReason}），已放弃`,
+            6000,
+          );
+          return;
+        }
+
+        issues = checkLatexSuggestion(text, math.mode).issues;
         if (issues.length > 0) {
           log(out, `语法检查未通过（重试后放弃）：${formatIssues(issues)}`);
           vscode.window.setStatusBarMessage(
@@ -631,6 +698,7 @@ export function activate(context: vscode.ExtensionContext) {
           );
           return;
         }
+        log(out, '语法检查通过（重试后）');
       }
 
       setLastRequest({
@@ -707,20 +775,6 @@ export function deactivate() {
   pending = undefined;
   cancelPreviewOnDeactivate?.();
   cancelPreviewOnDeactivate = undefined;
-}
-
-function withTruncationIssue(
-  issues: LatexIssue[],
-  finishReason?: string,
-): LatexIssue[] {
-  if (!finishReason || finishReason === 'stop') return issues;
-  return [
-    ...issues,
-    {
-      code: 'truncated',
-      message: `模型输出未正常结束（finish_reason=${finishReason}），可能被截断`,
-    },
-  ];
 }
 
 function formatIssues(issues: LatexIssue[]): string {
