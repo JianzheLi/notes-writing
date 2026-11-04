@@ -1,6 +1,6 @@
 # agent-complete 插件计划（VSCode · Cmd+E · DeepSeek）
 
-- 状态：v0.7（M0–M2 已完成，M3 语法检查进行中）
+- 状态：v0.8（M0–M3 已完成、待验收；下一步 M4 上下文工程）
 - 日期：2026-11-03（v0.5 更新：2026-11-04）
 - 仓库：`notes-writing/`（分支 main，git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>`，远程 https://github.com/JianzheLi/notes-writing）
 - 代码：`notes-writing/agent-complete/`；开发流程见 [DEV-PLAN.md](DEV-PLAN.md)
@@ -279,6 +279,7 @@ agent-complete/
 | 2026-11-04 | FIM 用于 `.py` 代码续写（M2），公式生成用 Chat Completions |
 | 2026-11-04 | 默认思考强度 `max`（flash + thinking enabled + reasoning_effort max）；maxTokens 8192、timeout 90s |
 | 2026-11-05 | 默认思考强度改为 `none`；新增 Activity Bar 控制台与状态栏入口 |
+| 2026-11-05 | M3：简单语法检查（`$`/`{}`/`\left`/`\begin`）+ 失败重试 1 次 + 错误分类 |
 | 2026-11-04 | git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>` |
 | 2026-11-04 | 远程仓库 GitHub `JianzheLi/notes-writing`（private），M0 已推送 |
 

@@ -59,6 +59,8 @@ export interface ChatResult {
   content: string;
   usage: ChatUsage;
   elapsedMs: number;
+  /** 模型返回的 finish_reason（stop / length / content_filter 等）。 */
+  finishReason?: string;
   proxyUsed?: string;
   proxySource?: string;
 }

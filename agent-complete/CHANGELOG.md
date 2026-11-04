@@ -14,6 +14,12 @@
   - API key 支持从本地 `api.txt`、`.env`、环境变量 `DEEPSEEK_API_KEY` 自动载入（文件优先，最后回退 SecretStorage；路径可用 `agentComplete.apiKeyFile` 配置）
   - 新增左侧 Activity Bar 控制台（webview）：模型/思考强度/公式样式/上下文预算、API key 来源与设置、生成/行内/行间、网络诊断、输出面板；右下角状态栏也有入口
 
+- **M3（语法检查与错误处理）**
+  - 新增 `src/latexCheck.ts`：`$` 定界符、`{}` 平衡、`\left/\right` 数量、`\begin/\end` 配对检查（忽略 `\$`、`\{`、`\}` 等转义）
+  - 语法检查不通过时：把具体问题作为追加消息让模型修正，最多重试 1 次；仍失败则状态栏提示、不显示 ghost text/选区预览
+  - 错误分类：超时、网络、HTTP 401/429/5xx、空结果、`finish_reason != stop`（截断）；日志保留原始原因，状态栏只显示一句话
+  - 新增 `tests/latexCheck.test.mjs`
+
 - **M1（公式生成最小闭环）**
   - `Cmd+E` 触发：采集光标前文/后文（默认 32k token 预算）→ DeepSeek Chat Completions → 后处理 → ghost text
   - 基础行内/行间/数学环境判定（`$...$`、`$$...$$`、`equation/align` 等环境）

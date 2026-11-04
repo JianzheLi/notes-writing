@@ -9,10 +9,12 @@
 - ✅ 判定健壮性：数学环境白名单（`figure/table/document` 不误判）、LaTeX `%` 注释、Markdown 代码块/行内代码、`\$` 转义、金额 `$100` 与未闭合 `$` 的启发式
 - ✅ 选区替换预览：选中一段描述按 `Cmd+E`，原文标红、替换内容标绿，**`Tab` 才真正替换 / `Esc` 取消**（多行/整行选区默认行间，句中短语默认行内；接受后 `Cmd+Z` 可撤销）
 - ✅ 强制命令：`Agent Complete: 生成行内公式` / `Agent Complete: 生成行间公式`
+- ✅ 语法检查与重试：检查 `$`、`{}`、`\left/\right`、`\begin/\end`；不通过时把具体问题反馈给模型重试 1 次，仍失败则不显示 ghost text
+- ✅ 错误分类：超时 / 网络 / HTTP 401/429/5xx / 空结果 / 输出截断，状态栏给一句话，详情在输出面板
 - ✅ 思考强度可配（`none/low/high/max`），默认 `none`（不思考，最快；需要更高质量可在控制台里切）
 - ✅ 状态栏显示生成中 + 已耗时；失败只提示不弹窗
 - ✅ 输出面板 `Agent Complete` 记录耗时、上下文大小、usage
-- ⏳ 还没做（后续 milestone）：语法检查+重试（M3）、`.py` FIM 续写、`.ipynb`（M5）
+- ⏳ 还没做（后续 milestone）：`.py` FIM 续写、`.ipynb`（M5）、Marketplace 发布（M6）
 
 ## 本机调试（F5）
 
@@ -76,6 +78,7 @@ src/
   context.ts      # 上下文采集与预算裁剪、排除文件
   mathScan.ts     # 数学状态扫描（纯函数：$、环境、注释、代码块）
   mathMode.ts     # 行内/行间/选区样式判定
+  latexCheck.ts   # 简单语法检查（$、{}、\left、\begin）
   prompt.ts       # system/user prompt
   postprocess.ts  # trim、去围栏、定界符处理
   types.ts        # 共享类型

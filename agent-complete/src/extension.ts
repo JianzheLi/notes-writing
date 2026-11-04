@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { resolveApiKey, SECRET_KEY } from './apiKey';
+import { checkLatexSuggestion, LatexIssue } from './latexCheck';
 import { ControlPanel } from './panel';
 import { chatCompletion } from './chatClient';
 import { buildContext, isExcluded } from './context';
@@ -388,6 +389,8 @@ export function activate(context: vscode.ExtensionContext) {
       : 0;
     const selectionLeading = hasSelection ? /^\s*/.exec(selectedText)![0] : '';
     const selectionTrailing = hasSelection ? /\s*$/.exec(selectedText)![0] : '';
+    const lineEnd =
+      document.lineAt(position.line).text.slice(position.character).trim().length === 0;
     const config = vscode.workspace.getConfiguration('agentComplete');
 
     const languages = config.get<string[]>('languages', []);
@@ -485,78 +488,138 @@ export function activate(context: vscode.ExtensionContext) {
       );
     }, 1000);
 
-    try {
-      const result = await chatCompletion({
-        apiKey,
-        baseUrl: config.get<string>('baseUrl', 'https://api.deepseek.com'),
-        model: config.get<string>('model', 'deepseek-flash'),
-        reasoningEffort: effort,
-        maxTokens: config.get<number>('maxTokens', 8192),
-        temperature: config.get<number>('temperature', 0.2),
-        timeoutMs: config.get<number>('timeoutMs', 90000),
-        messages,
-        signal: controller.signal,
-        proxies: proxyCandidates,
-      });
+    const requestOptions = {
+      apiKey,
+      baseUrl: config.get<string>('baseUrl', 'https://api.deepseek.com'),
+      model: config.get<string>('model', 'deepseek-flash'),
+      reasoningEffort: effort,
+      maxTokens: config.get<number>('maxTokens', 8192),
+      temperature: config.get<number>('temperature', 0.2),
+      timeoutMs: config.get<number>('timeoutMs', 90000),
+      signal: controller.signal,
+      proxies: proxyCandidates,
+    };
 
-      clearInterval(ticker);
-      status.dispose();
-      if (controller.signal.aborted) return;
-
-      const lineEnd =
-        document.lineAt(position.line).text.slice(position.character).trim().length === 0;
-      const text = buildSuggestion(result.content, math.mode, codeContext.lineBefore, {
+    const buildText = (content: string): string =>
+      buildSuggestion(content, math.mode, codeContext.lineBefore, {
         replace: hasSelection,
         trailingNewlines,
         lineEnd,
       });
-      log(
-        out,
-        `生成 ${result.elapsedMs}ms | mode=${math.mode} | ` +
-          `上下文 ${codeContext.prefix.length}+${codeContext.suffix.length} 字符 | ` +
-          `输出 ${text.length} 字符（${suggestionStyle(text)}） | proxy=${result.proxySource ?? 'direct'} | ` +
-          `usage=${JSON.stringify(result.usage)}`,
-      );
 
+    const validateTarget = (): boolean => {
       if (document.version !== versionAtTrigger) {
         vscode.window.setStatusBarMessage(
           '$(circle-slash) Agent Complete：文档已变化，丢弃这次结果',
           2500,
         );
-        return;
+        return false;
       }
-
       if (hasSelection) {
-        const sameSelection =
-          vscode.window.activeTextEditor === editor &&
-          !editor.selection.isEmpty &&
-          editor.selection.isEqual(selection);
-        if (!sameSelection) {
+        if (
+          vscode.window.activeTextEditor !== editor ||
+          editor.selection.isEmpty ||
+          !editor.selection.isEqual(selection)
+        ) {
           vscode.window.setStatusBarMessage(
             '$(circle-slash) Agent Complete：选区已变化，丢弃这次结果',
             2500,
           );
-          return;
+          return false;
         }
-      } else {
-        const stillSameTarget =
-          vscode.window.activeTextEditor === editor &&
-          editor.selection.active.isEqual(position);
-        if (!stillSameTarget) {
-          vscode.window.setStatusBarMessage(
-            '$(circle-slash) Agent Complete：光标已移动，丢弃这次结果',
-            2500,
-          );
-          return;
-        }
+      } else if (
+        vscode.window.activeTextEditor !== editor ||
+        !editor.selection.active.isEqual(position)
+      ) {
+        vscode.window.setStatusBarMessage(
+          '$(circle-slash) Agent Complete：光标已移动，丢弃这次结果',
+          2500,
+        );
+        return false;
       }
+      return true;
+    };
+
+    try {
+      let result = await chatCompletion({ ...requestOptions, messages });
+
+      clearInterval(ticker);
+      status.dispose();
+      if (controller.signal.aborted) return;
+      if (!validateTarget()) return;
+
+      let text = buildText(result.content);
+      log(
+        out,
+        `生成 ${result.elapsedMs}ms | mode=${math.mode} | ` +
+          `上下文 ${codeContext.prefix.length}+${codeContext.suffix.length} 字符 | ` +
+          `输出 ${text.length} 字符（${suggestionStyle(text)}） | ` +
+          `finish=${result.finishReason ?? 'unknown'} | proxy=${result.proxySource ?? 'direct'} | ` +
+          `usage=${JSON.stringify(result.usage)}`,
+      );
 
       if (!text) {
         vscode.window.setStatusBarMessage(
-          '$(circle-slash) Agent Complete：模型没有给出公式',
-          2500,
+          result.finishReason === 'length'
+            ? '$(circle-slash) Agent Complete：模型输出被截断（max_tokens 不足）'
+            : '$(circle-slash) Agent Complete：模型没有给出公式',
+          3500,
         );
         return;
+      }
+
+      let check = checkLatexSuggestion(text, math.mode);
+      let issues = withTruncationIssue(check.issues, result.finishReason);
+      if (issues.length === 0) log(out, '语法检查通过');
+
+      if (issues.length > 0) {
+        log(out, `语法检查未通过（第 1 次）：${formatIssues(issues)}`);
+        const retryStatus = vscode.window.setStatusBarMessage(
+          '$(sync~spin) Agent Complete 语法检查未通过，正在重试…',
+        );
+        try {
+          result = await chatCompletion({
+            ...requestOptions,
+            messages: [
+              ...messages,
+              { role: 'assistant', content: result.content },
+              { role: 'user', content: buildRetryMessage(issues) },
+            ],
+          });
+        } finally {
+          retryStatus.dispose();
+        }
+        if (controller.signal.aborted) return;
+        if (!validateTarget()) return;
+
+        text = buildText(result.content);
+        log(
+          out,
+          `重试 ${result.elapsedMs}ms | 输出 ${text.length} 字符（${suggestionStyle(text)}） | ` +
+            `finish=${result.finishReason ?? 'unknown'} | usage=${JSON.stringify(result.usage)}`,
+        );
+
+        if (!text) {
+          vscode.window.setStatusBarMessage(
+            result.finishReason === 'length'
+              ? '$(circle-slash) Agent Complete：模型输出被截断（max_tokens 不足）'
+              : '$(circle-slash) Agent Complete：重试后模型仍然没有给出公式',
+            3500,
+          );
+          return;
+        }
+
+        check = checkLatexSuggestion(text, math.mode);
+        issues = withTruncationIssue(check.issues, result.finishReason);
+        if (issues.length === 0) log(out, '语法检查通过（重试后）');
+        if (issues.length > 0) {
+          log(out, `语法检查未通过（重试后放弃）：${formatIssues(issues)}`);
+          vscode.window.setStatusBarMessage(
+            `$(circle-slash) Agent Complete：语法检查未通过，已放弃（${formatIssues(issues).slice(0, 100)}）`,
+            6000,
+          );
+          return;
+        }
       }
 
       // 有选区：红色标记原文 + 绿色预览替换文本，Tab 才真正替换。
@@ -592,8 +655,8 @@ export function activate(context: vscode.ExtensionContext) {
           `proxyCandidates=${proxyCandidates.map((c) => c.source).join(',') || 'none'}`,
       );
       vscode.window.setStatusBarMessage(
-        `$(error) Agent Complete 失败：${message.slice(0, 140)}`,
-        5000,
+        `$(error) Agent Complete 失败：${friendlyError(error)}`,
+        6000,
       );
     } finally {
       clearInterval(ticker);
@@ -620,6 +683,47 @@ export function deactivate() {
   pending = undefined;
   cancelPreviewOnDeactivate?.();
   cancelPreviewOnDeactivate = undefined;
+}
+
+function withTruncationIssue(
+  issues: LatexIssue[],
+  finishReason?: string,
+): LatexIssue[] {
+  if (!finishReason || finishReason === 'stop') return issues;
+  return [
+    ...issues,
+    {
+      code: 'truncated',
+      message: `模型输出未正常结束（finish_reason=${finishReason}），可能被截断`,
+    },
+  ];
+}
+
+function formatIssues(issues: LatexIssue[]): string {
+  return issues.map((issue) => issue.message).join('；');
+}
+
+function buildRetryMessage(issues: LatexIssue[]): string {
+  const lines = issues.map((issue) => `- ${issue.message}`).join('\n');
+  return `你上一次输出没有通过简单语法检查：\n${lines}\n请只输出修正后的公式本身，不要解释，也不要重复上下文中已有内容。`;
+}
+
+/** 把错误归类成适合状态栏的一句话；完整原因仍写日志。 */
+function friendlyError(error: unknown): string {
+  const raw = describeError(error);
+  const http = /HTTP (\d{3})/.exec(raw);
+  if (http) {
+    const status = Number(http[1]);
+    if (status === 401 || status === 403) return `API key 无效或无权限（HTTP ${status}）`;
+    if (status === 429) return '请求被限流（HTTP 429），稍后再试';
+    if (status >= 500) return `DeepSeek 服务端错误（HTTP ${status}）`;
+    return `API 请求失败（HTTP ${status}）`;
+  }
+  if (/超时|timeout|ETIMEDOUT/i.test(raw)) return '请求超时';
+  if (/ENOTFOUND|ECONNREFUSED|EAI_AGAIN|HostUnreachable|socket hang up|fetch failed/i.test(raw)) {
+    return '网络连接失败';
+  }
+  return raw.slice(0, 160);
 }
 
 /** 日志里标一下模型最终选的是行内还是行间。 */

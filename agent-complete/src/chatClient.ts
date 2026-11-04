@@ -56,6 +56,8 @@ async function attempt(
 
   const data: any = JSON.parse(response.body);
   const content: string = data?.choices?.[0]?.message?.content ?? '';
+  const finishReason: string | undefined =
+    data?.choices?.[0]?.finish_reason ?? undefined;
   const usageData = data?.usage ?? {};
   const usage: ChatUsage = {
     promptTokens: usageData.prompt_tokens,
@@ -70,6 +72,7 @@ async function attempt(
     content,
     usage,
     elapsedMs: Date.now() - startedAt,
+    finishReason,
     proxyUsed: proxy?.url,
     proxySource: proxy?.source,
   };
