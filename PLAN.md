@@ -1,6 +1,6 @@
 # agent-complete 插件计划（VSCode · Cmd+E · DeepSeek）
 
-- 状态：v0.8（M0–M3 已完成、待验收；下一步 M4 上下文工程）
+- 状态：v0.9（M0–M3 已完成；M4 上下文工程进行中）
 - 日期：2026-11-03（v0.5 更新：2026-11-04）
 - 仓库：`notes-writing/`（分支 main，git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>`，远程 https://github.com/JianzheLi/notes-writing）
 - 代码：`notes-writing/agent-complete/`；开发流程见 [DEV-PLAN.md](DEV-PLAN.md)
