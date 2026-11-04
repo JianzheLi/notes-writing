@@ -5,7 +5,7 @@
 - 仓库：`notes-writing/`（分支 main，git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>`，远程 https://github.com/JianzheLi/notes-writing）
 - 代码：`notes-writing/agent-complete/`；开发流程见 [DEV-PLAN.md](DEV-PLAN.md)
 - 里程碑编号与验收以 [DEV-PLAN.md](DEV-PLAN.md) 为准（本文第 10 节为早期编号，后续以 DEV-PLAN 的顺序执行）。
-- 已确认：快捷键 `Cmd+E`；上下文默认 32k、配置上限 128k；默认思考强度 **max**；语言 `markdown / latex / tex / python`；
+- 已确认：快捷键 `Cmd+E`；上下文默认 32k、配置上限 128k；默认思考强度 **none**（控制台可切 high/max）；语言 `markdown / latex / tex / python`；
   仅手动触发；主场景 = 写完文字描述后让 AI 写公式（行内 / 行间）；必须做简单语法检查；
   行内/行间 auto + 两个强制命令。
 
@@ -70,7 +70,7 @@
 | 非思考（可切） | `thinking: {"type": "disabled"}` | 最快、最便宜；简单/中等公式足够 |
 | 思考 low | `thinking: enabled` + `reasoning_effort: "low"` | 稍慢，复杂公式更稳 |
 | 思考 high（API 默认） | `reasoning_effort: "high"` | 更慢，难题更准 |
-| **思考 max（已确认默认）** | `reasoning_effort: "max"` | 最慢（10–60s），质量优先；难公式首选 |
+| **思考 max（高质量选项，非默认）** | `reasoning_effort: "max"` | 最慢（10–60s），质量优先；难公式可选 |
 | 换模型 | `deepseek-v4-pro` | 更强更贵，适合很难的推导 |
 
 注意：思考模式下 `temperature` 不生效；`deepseek-flash` 非思考模式 `top_p` 固定 1.0。
@@ -199,7 +199,7 @@ Cmd+E
 
 ## 9. 延迟与成本
 
-- 默认思考 `max`：简单公式约 5–15s，复杂公式 20–60s（手动触发可接受）；prefill 32k 约 0.5–1.5s，缓存命中更快。
+- 默认思考 `none`：通常 1–3s；需要更高质量时在控制台/设置切到 `high/max`（复杂公式 20–60s）。prefill 32k 约 0.5–1.5s，缓存命中更快。
 - `maxTokens` 默认 8192（思考模式需要给推理留空间），`timeoutMs` 默认 90s。
 - 单次成本（flash 非高峰，32k 输入 + 约 2–5k 思考/输出 token）粗算 **$0.01 上下/次**；每天 100 次 ≈ $1。
 - 若觉得慢：设置里把 `reasoningEffort` 改成 `none` 即可切回 1–3s 的快速模式，不用改代码。
@@ -237,7 +237,7 @@ agent-complete/
 配置项（`package.json` → `contributes.configuration`）：
 
 - `agentComplete.model`：默认 `deepseek-flash`
-- `agentComplete.reasoningEffort`：`none | low | high | max`，默认 `max`（思考模式）
+- `agentComplete.reasoningEffort`：`none | low | high | max`，默认 `none`（非思考）
 - `agentComplete.maxTokens`：默认 `8192`
 - `agentComplete.temperature`：默认 `0.2`（思考模式下不生效）
 - `agentComplete.contextTokens`：默认 `32000`，范围 1000–128000
@@ -261,7 +261,7 @@ agent-complete/
 ## 13. 待确认
 
 1. 远程仓库已建好并推送 M0：https://github.com/JianzheLi/notes-writing（private）。
-2. 默认思考强度已按你的要求设为 `max`；如果实际用起来太慢，设置里改成 `none` 即可（不用改代码）。
+2. 默认思考强度已按你的要求改为 `none`；需要更高质量时在控制台/设置里切到 `high` 或 `max`。
 3. 开发流程与分工见 [DEV-PLAN.md](DEV-PLAN.md)，请确认里程碑划分与"先本地验收、再 push 远程"的规则。
 4. 计划确认后是否开工 M1？
 
@@ -278,6 +278,7 @@ agent-complete/
 | 2026-11-04 | 不做自动触发（仅手动快捷键） |
 | 2026-11-04 | FIM 用于 `.py` 代码续写（M2），公式生成用 Chat Completions |
 | 2026-11-04 | 默认思考强度 `max`（flash + thinking enabled + reasoning_effort max）；maxTokens 8192、timeout 90s |
+| 2026-11-05 | 默认思考强度改为 `none`；新增 Activity Bar 控制台与状态栏入口 |
 | 2026-11-04 | git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>` |
 | 2026-11-04 | 远程仓库 GitHub `JianzheLi/notes-writing`（private），M0 已推送 |
 

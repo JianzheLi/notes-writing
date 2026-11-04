@@ -12,6 +12,7 @@
   - 强制命令 `Agent Complete: 生成行内公式` / `生成行间公式` 接入并补充状态栏提示
   - 纯函数单测：`tests/`（`npm test`）；review 后补的回归用例覆盖 `\$` 结尾、未闭合围栏、`\(...\)` 归一、掩码顺序、金额+CJK、LaTeX 空格、`align*` 配对
   - API key 支持从本地 `api.txt`、`.env`、环境变量 `DEEPSEEK_API_KEY` 自动载入（文件优先，最后回退 SecretStorage；路径可用 `agentComplete.apiKeyFile` 配置）
+  - 新增左侧 Activity Bar 控制台（webview）：模型/思考强度/公式样式/上下文预算、API key 来源与设置、生成/行内/行间、网络诊断、输出面板；右下角状态栏也有入口
 
 - **M1（公式生成最小闭环）**
   - `Cmd+E` 触发：采集光标前文/后文（默认 32k token 预算）→ DeepSeek Chat Completions → 后处理 → ghost text
@@ -25,6 +26,7 @@
 - 项目主场景从"Copilot 式代码补全"调整为"文字描述 → LaTeX 公式生成"
 - `formulaStyle=auto` 不再按"行尾/句中"硬判，改为由模型根据上下文决定行内/行间；本地只在明确的数学环境里做补全判定
 - 选区替换从"直接替换"改为红/绿预览 + `Tab` 确认，避免误替换
+- 默认思考强度从 `max` 改为 `none`（快、便宜；需要质量可在控制台切回 `high/max`）
 
 ### Fixed
 

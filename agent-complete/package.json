@@ -13,7 +13,8 @@
     "Programming Languages"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:agentComplete.controlPanel"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -52,6 +53,11 @@
         "command": "agentComplete.cancelSelectionPreview",
         "title": "取消选区替换（Esc）",
         "category": "Agent Complete"
+      },
+      {
+        "command": "agentComplete.openControlPanel",
+        "title": "打开控制台",
+        "category": "Agent Complete"
       }
     ],
     "keybindings": [
@@ -72,6 +78,24 @@
         "when": "editorTextFocus && agentComplete.selectionPreviewActive"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "agentComplete",
+          "title": "Agent Complete",
+          "icon": "media/panel.svg"
+        }
+      ]
+    },
+    "views": {
+      "agentComplete": [
+        {
+          "id": "agentComplete.controlPanel",
+          "name": "控制台",
+          "type": "webview"
+        }
+      ]
+    },
     "configuration": {
       "title": "Agent Complete",
       "properties": {
@@ -92,8 +116,8 @@
             "high",
             "max"
           ],
-          "default": "max",
-          "description": "思考强度：none = 非思考模式（快）；low/high/max = 开启思考，越高质量越好但越慢越贵；默认 max（质量优先）。"
+          "default": "none",
+          "description": "思考强度：none = 非思考模式（快，默认）；low/high/max = 开启思考，越高质量越好但越慢越贵。"
         },
         "agentComplete.baseUrl": {
           "type": "string",

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { resolveApiKey, SECRET_KEY } from './apiKey';
+import { ControlPanel } from './panel';
 import { chatCompletion } from './chatClient';
 import { buildContext, isExcluded } from './context';
 import { detectMathContext, selectionStyle } from './mathMode';
@@ -191,6 +192,45 @@ export function activate(context: vscode.ExtensionContext) {
     'setContext',
     'agentComplete.selectionPreviewActive',
     false,
+  );
+
+  // ---- 控制台：左侧 Activity Bar 的 webview + 右下角状态栏入口 ----
+  const panel = new ControlPanel(context, out);
+  const statusBar = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    100,
+  );
+  statusBar.command = 'agentComplete.openControlPanel';
+  statusBar.tooltip = '打开 Agent Complete 控制台';
+  statusBar.show();
+  context.subscriptions.push(statusBar);
+
+  const updateStatusBar = () => {
+    const effort = vscode.workspace
+      .getConfiguration('agentComplete')
+      .get<ReasoningEffort>('reasoningEffort', 'none');
+    statusBar.text = `$(zap) Agent Complete · ${effort}`;
+  };
+  updateStatusBar();
+
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      'agentComplete.controlPanel',
+      panel,
+      { webviewOptions: { retainContextWhenHidden: true } },
+    ),
+    panel,
+    vscode.commands.registerCommand('agentComplete.openControlPanel', () =>
+      vscode.commands.executeCommand('workbench.view.extension.agentComplete'),
+    ),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (!event.affectsConfiguration('agentComplete')) return;
+      updateStatusBar();
+      void panel.refresh();
+    }),
+    context.secrets.onDidChange(() => {
+      void panel.refresh();
+    }),
   );
 
   context.subscriptions.push(
@@ -386,7 +426,7 @@ export function activate(context: vscode.ExtensionContext) {
     const controller = new AbortController();
     inflight = controller;
 
-    const effort = config.get<ReasoningEffort>('reasoningEffort', 'max');
+    const effort = config.get<ReasoningEffort>('reasoningEffort', 'none');
     const configuredStyle = forcedStyle ?? config.get<FormulaStyle>('formulaStyle', 'auto');
     let math: MathContext;
     if (hasSelection) {

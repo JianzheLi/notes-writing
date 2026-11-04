@@ -89,7 +89,7 @@
 
 **接口与正确性**
 
-- [ ] Chat 请求参数正确：默认 `{thinking: {type: "enabled"}, reasoning_effort: "max"}`；`none` 时 `{type: "disabled"}` 且不传 effort
+- [ ] Chat 请求参数正确：默认 `none` → `{thinking: {type: "disabled"}}` 且不传 effort；`low/high/max` 时 `{type: "enabled"}` + 对应 effort
 - [ ] `max_tokens`、`temperature`（thinking 模式下不生效要跳过）、`timeoutMs` 按配置传
 - [ ] 行内/行间判定边界：光标在 `$...$`、`$$...$$`、`equation/align` 内、行尾、句子中间、选区
 - [ ] 语法检查转义处理：`\$`、`\{`、`\}`、`\\` 不能误判
