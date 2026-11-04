@@ -1,8 +1,8 @@
 # 开发流程、分工与里程碑（DEV-PLAN）
 
-- 状态：v0.2（执行中：M0/M1 已完成，M2 待验收）
+- 状态：v0.3（M0–M2 已完成，M3 进行中）
 - 日期：2026-11-04
-- 关联：[PLAN.md](PLAN.md)（产品计划）、远程仓库 https://github.com/JianzheLi/notes-writing（private）
+- 关联：[PLAN.md](PLAN.md)（产品计划）、远程仓库 https://github.com/JianzheLi/notes-writing（public）
 - 代码目录：`agent-complete/`
 
 ## 1. 总原则
@@ -36,7 +36,7 @@
 | --- | --- | --- | --- | --- |
 | **M0**（已完成） | 仓库、计划、扩展骨架、Cmd+E 占位、tsc 编译 | `package.json`、`src/extension.ts`、PLAN、DEV-PLAN | `tsc` 通过；远程仓库 main 有提交 | 已完成 |
 | **M1 公式生成最小闭环** | Cmd+E → 取光标前 32k 文本 → Chat Completions（flash，thinking max）→ trim/去围栏 → ghost text → Tab | `types.ts`、`prompt.ts`、`chatClient.ts`、`context.ts`（基础版）、`postprocess.ts`、`extension.ts` 接线 | 在 `.tex`/`.md` 写完描述按 Cmd+E 能出公式并 Tab 插入；断网/超时只状态栏提示不弹窗 | 1–2 天 |
-| **M2 行内/行间与选区**（待验收） | 数学环境识别、行内/行间判定、`formulaStyle` auto/inline/display、两个强制命令、选区替换 | `mathScan.ts`、`mathMode.ts`、`extension.ts`（命令接线）、`package.json`（命令） | 行内/行间都正确；选区可替换；强制命令生效 | 0.5–1 天 |
+| **M2 行内/行间与选区**（已完成） | 数学环境识别、行内/行间判定、`formulaStyle` auto/inline/display、两个强制命令、选区替换 | `mathScan.ts`、`mathMode.ts`、`extension.ts`（命令接线）、`package.json`（命令） | 行内/行间都正确；选区可替换；强制命令生效 | 0.5–1 天 |
 | **M3 语法检查与健壮性** | `$`/`{}`/`\left/\right`/`\begin-\end` 检查、失败重试 1 次、错误分类（超时/网络/API/空结果）、输出面板日志 | `latexCheck.ts`、`extension.ts`、`log.ts` | 坏公式不显示；错误信息可诊断；日志里无密钥 | 0.5–1 天 |
 | **M4 上下文工程** | 结构优先排序（宏定义/符号表/当前小节/前文）、32k/128k 预算裁剪、前缀缓存友好、排除文件生效 | `context.ts`、`prompt.ts` | 长文档下上下文选择合理；缓存命中率可观察；排除文件不上传 | 1 天 |
 | **M5 代码模式与发布** | `.py` 的 FIM 续写、`.ipynb` 支持验证（不行则降级）、README、`vsix` 打包、bench 脚本 | `fimClient.ts`、`extension.ts`、`scripts/bench.mjs`、README | `.py` Cmd+E 能续写；vsix 可安装；README 完整 | 1–2 天 |
