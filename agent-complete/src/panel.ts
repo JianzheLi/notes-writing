@@ -276,7 +276,8 @@ function buildHtml(): string {
     </div>
     <div class="hint" id="apiKeyFileHint">查找文件与来源</div>
     <button class="primary" id="setApiKey">设置 / 更新 API Key</button>
-    <button id="refresh" class="spaced">刷新状态</button>
+    <button id="refresh" class="spaced" title="只重新读取本地设置与 API Key 来源，不发起网络请求">刷新显示（本地）</button>
+    <div class="hint">只重新读取本地配置/Key 文件，不调用 API、不消耗 token。</div>
   </div>
 
   <div class="card">
