@@ -5,6 +5,8 @@ export interface SuggestionOptions {
   replace?: boolean;
   /** replace 模式下，选区末尾原本有几个换行（0/1/2…），用于保持段落间距。 */
   trailingNewlines?: number;
+  /** 光标是否在行尾（后面只剩空白）：行间公式不必再补尾随换行，避免多出空行。 */
+  lineEnd?: boolean;
 }
 
 /** 去掉模型偶尔输出的 markdown 围栏。 */
@@ -96,13 +98,17 @@ export function buildSuggestion(
     return stripDelimiters(text, mode === 'continue-display');
   }
 
+  const lineEnd = options.lineEnd === true;
+
   if (mode === 'auto') {
-    return buildAutoSuggestion(text, lineBefore, replace, trailingNewlines);
+    return buildAutoSuggestion(text, lineBefore, replace, trailingNewlines, lineEnd);
   }
 
   if (mode === 'display') {
     const content = stripDelimiters(text, true);
-    return content ? formatDisplay(content, lineBefore, replace, trailingNewlines) : '';
+    return content
+      ? formatDisplay(content, lineBefore, replace, trailingNewlines, lineEnd)
+      : '';
   }
 
   const content = stripDelimiters(text, false);
@@ -115,10 +121,13 @@ function buildAutoSuggestion(
   lineBefore: string,
   replace: boolean,
   trailingNewlines: number,
+  lineEnd: boolean,
 ): string {
   if (startsWithDisplay(text)) {
     const content = stripDelimiters(text, true);
-    return content ? formatDisplay(content, lineBefore, replace, trailingNewlines) : '';
+    return content
+      ? formatDisplay(content, lineBefore, replace, trailingNewlines, lineEnd)
+      : '';
   }
 
   if (startsWithInline(text)) {
@@ -129,7 +138,9 @@ function buildAutoSuggestion(
   // 模型没带定界符：行首/空行按行间插入，句中按行内插入。
   if (lineBefore.trim().length === 0) {
     const content = stripDelimiters(text, true);
-    return content ? formatDisplay(content, lineBefore, replace, trailingNewlines) : '';
+    return content
+      ? formatDisplay(content, lineBefore, replace, trailingNewlines, lineEnd)
+      : '';
   }
   const content = stripDelimiters(text, false);
   return content ? `$${content}$` : '';
@@ -148,12 +159,15 @@ function formatDisplay(
   lineBefore: string,
   replace: boolean,
   trailingNewlines: number,
+  lineEnd: boolean,
 ): string {
   if (replace) {
     const block = isEnvironmentBlock(content) ? content : `$$\n${content}\n$$`;
     return `${block}${'\n'.repeat(trailingNewlines)}`;
   }
   const lead = lineBefore.trim().length > 0 ? '\n\n' : '';
-  if (isEnvironmentBlock(content)) return `${lead}${content}\n`;
-  return `${lead}$$\n${content}\n$$\n`;
+  // 光标在行尾时，原文本自带换行，不再补尾随换行，否则会出现两个空行。
+  const trailing = lineEnd ? '' : '\n';
+  if (isEnvironmentBlock(content)) return `${lead}${content}${trailing}`;
+  return `${lead}$$\n${content}\n$$${trailing}`;
 }

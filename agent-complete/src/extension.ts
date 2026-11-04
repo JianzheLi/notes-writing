@@ -346,6 +346,8 @@ export function activate(context: vscode.ExtensionContext) {
     const trailingNewlines = hasSelection
       ? countTrailingNewlines(selectedText)
       : 0;
+    const selectionLeading = hasSelection ? /^\s*/.exec(selectedText)![0] : '';
+    const selectionTrailing = hasSelection ? /\s*$/.exec(selectedText)![0] : '';
     const config = vscode.workspace.getConfiguration('agentComplete');
 
     const languages = config.get<string[]>('languages', []);
@@ -461,9 +463,12 @@ export function activate(context: vscode.ExtensionContext) {
       status.dispose();
       if (controller.signal.aborted) return;
 
+      const lineEnd =
+        document.lineAt(position.line).text.slice(position.character).trim().length === 0;
       const text = buildSuggestion(result.content, math.mode, codeContext.lineBefore, {
         replace: hasSelection,
         trailingNewlines,
+        lineEnd,
       });
       log(
         out,
@@ -517,7 +522,12 @@ export function activate(context: vscode.ExtensionContext) {
       // 有选区：红色标记原文 + 绿色预览替换文本，Tab 才真正替换。
       // （ghost text 的 range 不能跨行，所以这里用装饰器做预览，不直接改文档。）
       if (hasSelection) {
-        showSelectionPreview(editor, selection, text);
+        // 行内替换时保留选区两侧原有的空白（用户可能把空格一起框进去了）。
+        const replacement =
+          math.mode === 'inline'
+            ? `${selectionLeading}${text}${selectionTrailing}`
+            : text;
+        showSelectionPreview(editor, selection, replacement);
         return;
       }
 

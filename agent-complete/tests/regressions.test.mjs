@@ -91,3 +91,27 @@ test('postprocess auto: replace 模式下行间公式不加前导空行', () => 
     '$$\nx\n$$\n\n',
   );
 });
+
+test('postprocess display: 光标在行尾时不再补尾随换行（避免多一个空行）', () => {
+  assert.equal(
+    buildSuggestion('x^2', 'display', '描述文字', { lineEnd: true }),
+    '\n\n$$\nx^2\n$$',
+  );
+  assert.equal(
+    buildSuggestion('x^2', 'display', '', { lineEnd: true }),
+    '$$\nx^2\n$$',
+  );
+  assert.equal(
+    buildSuggestion(String.raw`\begin{equation}x\end{equation}`, 'display', '', {
+      lineEnd: true,
+    }),
+    String.raw`\begin{equation}x\end{equation}`,
+  );
+});
+
+test('postprocess auto: 行尾的行间公式同样不补尾随换行', () => {
+  assert.equal(
+    buildSuggestion('$$x$$', 'auto', '描述文字', { lineEnd: true }),
+    '\n\n$$\nx\n$$',
+  );
+});

@@ -28,6 +28,8 @@
 
 ### Fixed
 
+- 行间公式在行尾插入时多补了一个换行，导致 `$$` 后出现两个空行；现在光标在行尾时不再补尾随换行。
+- 选区替换保留选区两侧原有的空白（只对行内公式），避免 `其中 aaaa 是` 替换成 `其中$...$是`。
 - VS Code 1.144 扩展宿主里 `execFile` 默认解码触发 `StringDecoder is not a constructor`：系统代理探测改用 `encoding: 'buffer'` 手动解码；代理解析失败也不再中断 Cmd+E。
 - API key 文件（`api.txt`）自动读取失败时静默回退 SecretStorage。
 - 扩展宿主内 `fetch failed`：网络层改用 Node `https.request`，**始终跟随本机代理**（`agentComplete.proxy` → `http.proxy` → 环境变量 → macOS 系统代理），不自行直连；只有本机未配置代理时才直连。SOCKS 统一用 `socks5h` 由代理解析域名，多个代理候选依次尝试。错误信息带 cause 码与代理来源。
