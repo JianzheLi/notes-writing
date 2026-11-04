@@ -1,8 +1,14 @@
 .vscode/**
 src/**
 scripts/**
+tests/**
 tsconfig.json
 **/*.map
 **/*.ts
 .npm-cache/**
 .gitignore
+scratch.md
+api.txt
+.env
+.env.*
+package-lock.json

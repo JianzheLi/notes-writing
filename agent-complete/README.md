@@ -39,10 +39,14 @@
 | `agentComplete.apiKeyFile` | `api.txt` | 本地 key 文件名；相对工作区/扩展目录/上一级查找，命中后自动读取 |
 | `agentComplete.proxy` | 空 | 手动指定代理（优先于自动检测），如 `socks5://127.0.0.1:13659` |
 
-### API key 的两种方式
+### API key 的几种方式（按优先级）
 
-- **推荐 `api.txt`**：在仓库根目录（或 `agent-complete/`）放一个 `api.txt`，内容一行 `sk-...` 即可（也支持 `DEEPSEEK_API_KEY=sk-...`）。扩展每次请求时自动读取，文件已加入 `.gitignore`。
-- **SecretStorage**：命令面板 `Agent Complete: 设置 DeepSeek API Key`，存进系统钥匙串；文件存在时优先用文件。
+1. **`api.txt`**：在仓库根目录（或 `agent-complete/`）放一个 `api.txt`，内容一行 `sk-...` 即可（也支持 `DEEPSEEK_API_KEY=sk-...`）。扩展每次请求时自动读取，文件已加入 `.gitignore`。
+2. **`.env`**：仓库根目录的 `.env` 会被自动读取（只认 `DEEPSEEK_API_KEY=`，不会把别的变量当 key）。可以从 `.env.example` 复制：`cp .env.example .env`。`.env` 已在 `.gitignore` 里。
+3. **环境变量**：`DEEPSEEK_API_KEY=sk-...`（适合从终端启动 VS Code / CI）。
+4. **SecretStorage**：命令面板 `Agent Complete: 设置 DeepSeek API Key`，存进系统钥匙串。
+
+也可以把 `agentComplete.apiKeyFile` 设成任意文件名/绝对路径；文件不存在时会继续尝试后面的方式。
 
 ## 排错
 

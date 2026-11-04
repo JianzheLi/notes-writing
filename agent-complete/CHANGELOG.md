@@ -11,7 +11,7 @@
   - `\$` 转义、金额 `$100`、未闭合 `$x + `、空行复位等启发式；扫描窗口向后多取 200 行以寻找行内公式闭合 `$`
   - 强制命令 `Agent Complete: 生成行内公式` / `生成行间公式` 接入并补充状态栏提示
   - 纯函数单测：`tests/`（`npm test`）；review 后补的回归用例覆盖 `\$` 结尾、未闭合围栏、`\(...\)` 归一、掩码顺序、金额+CJK、LaTeX 空格、`align*` 配对
-  - API key 支持从本地 `api.txt` 自动载入（文件优先于 SecretStorage，路径可用 `agentComplete.apiKeyFile` 配置）
+  - API key 支持从本地 `api.txt`、`.env`、环境变量 `DEEPSEEK_API_KEY` 自动载入（文件优先，最后回退 SecretStorage；路径可用 `agentComplete.apiKeyFile` 配置）
 
 - **M1（公式生成最小闭环）**
   - `Cmd+E` 触发：采集光标前文/后文（默认 32k token 预算）→ DeepSeek Chat Completions → 后处理 → ghost text

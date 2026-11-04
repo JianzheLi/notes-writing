@@ -8,6 +8,7 @@ api.txt
 *.pem
 .env
 .env.*
+!.env.example
 
 # 本地会话日志可能包含 API key，绝不提交
 session*.jsonl
