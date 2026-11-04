@@ -43,8 +43,15 @@ export function buildMessages(params: {
   const { context, math } = params;
   const replacesSelection = context.selection !== undefined;
 
+  const macrosBlock = context.macros
+    ? `【宏定义/符号】
+${context.macros}
+
+`
+    : '';
+
   const selectionBlock = replacesSelection
-    ? `用户选中的文字（这是描述，生成后会用公式替换它）：
+    ? `【选区描述（将用公式替换）】
 ${context.selection}
 
 `
@@ -53,7 +60,7 @@ ${context.selection}
   const user = `文件：${params.fileName}（${params.languageId}）
 当前小节：${context.section || '（未识别）'}
 
-${selectionBlock}光标前文：
+${macrosBlock}光标前文：
 ${context.prefix}
 
 【光标位置】
@@ -61,7 +68,7 @@ ${context.prefix}
 光标后文：
 ${context.suffix}
 
-要求：${styleHint(math, replacesSelection)}`;
+${selectionBlock}要求：${styleHint(math, replacesSelection)}`;
 
   return [
     { role: 'system', content: SYSTEM_PROMPT },

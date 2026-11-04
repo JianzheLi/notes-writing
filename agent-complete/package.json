@@ -1,7 +1,7 @@
 {
-  "name": "agent-complete",
-  "displayName": "Agent Complete",
-  "description": "Cmd+E 生成 LaTeX 公式、代码补全（DeepSeek Chat / FIM）。",
+  "name": "tame",
+  "displayName": "TAME",
+  "description": "TAME — Text-to-equation Assistant for Markdown Editing. 写完描述按 Cmd+E，用 DeepSeek 生成 LaTeX 公式。",
   "version": "0.1.0",
   "publisher": "local",
   "license": "MIT",
@@ -22,42 +22,42 @@
       {
         "command": "agentComplete.trigger",
         "title": "生成（公式/补全）",
-        "category": "Agent Complete"
+        "category": "TAME"
       },
       {
         "command": "agentComplete.triggerInline",
         "title": "生成行内公式",
-        "category": "Agent Complete"
+        "category": "TAME"
       },
       {
         "command": "agentComplete.triggerDisplay",
         "title": "生成行间公式",
-        "category": "Agent Complete"
+        "category": "TAME"
       },
       {
         "command": "agentComplete.setApiKey",
         "title": "设置 DeepSeek API Key",
-        "category": "Agent Complete"
+        "category": "TAME"
       },
       {
         "command": "agentComplete.diagnostics",
         "title": "网络诊断",
-        "category": "Agent Complete"
+        "category": "TAME"
       },
       {
         "command": "agentComplete.acceptSelectionPreview",
         "title": "接受选区替换（Tab）",
-        "category": "Agent Complete"
+        "category": "TAME"
       },
       {
         "command": "agentComplete.cancelSelectionPreview",
         "title": "取消选区替换（Esc）",
-        "category": "Agent Complete"
+        "category": "TAME"
       },
       {
         "command": "agentComplete.openControlPanel",
         "title": "打开控制台",
-        "category": "Agent Complete"
+        "category": "TAME"
       }
     ],
     "keybindings": [
@@ -82,7 +82,7 @@
       "activitybar": [
         {
           "id": "agentComplete",
-          "title": "Agent Complete",
+          "title": "TAME",
           "icon": "media/panel.svg"
         }
       ]
@@ -97,7 +97,7 @@
       ]
     },
     "configuration": {
-      "title": "Agent Complete",
+      "title": "TAME",
       "properties": {
         "agentComplete.model": {
           "type": "string",

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { resolveApiKey } from './apiKey';
+import { cachePercent, getLastRequest } from './lastRequest';
 import { FormulaStyle, ReasoningEffort } from './types';
 
 const MODELS = ['deepseek-flash', 'deepseek-v4-pro'] as const;
@@ -21,6 +22,15 @@ interface PanelState {
   apiKeySource: string;
   apiKeyFile: string;
   version: string;
+  lastRequest?: {
+    elapsedMs: number;
+    attempts: number;
+    mode: string;
+    style: string;
+    cachePercent?: number;
+    cacheHitTokens?: number;
+    promptTokens?: number;
+  };
 }
 
 /**
@@ -87,6 +97,19 @@ export class ControlPanel
       apiKeySource: keyInfo.key ? keyInfo.source ?? '已配置' : '未设置',
       apiKeyFile: config.get<string>('apiKeyFile', 'api.txt'),
       version: String(this.context.extension.packageJSON?.version ?? '0.1.0'),
+      lastRequest: (() => {
+        const last = getLastRequest();
+        if (!last) return undefined;
+        return {
+          elapsedMs: last.elapsedMs,
+          attempts: last.attempts,
+          mode: last.mode,
+          style: last.style,
+          cachePercent: cachePercent(last),
+          cacheHitTokens: last.cacheHitTokens,
+          promptTokens: last.promptTokens,
+        };
+      })(),
     };
   }
 
@@ -157,7 +180,7 @@ export class ControlPanel
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       vscode.window.setStatusBarMessage(
-        `$(error) Agent Complete：保存设置失败（${message.slice(0, 80)}）`,
+        `$(error) TAME：保存设置失败（${message.slice(0, 80)}）`,
         4000,
       );
     }
@@ -233,7 +256,7 @@ function buildHtml(): string {
   </style>
 </head>
 <body>
-  <h1>Agent Complete</h1>
+  <h1>TAME</h1>
   <div class="sub">Cmd+E 公式助手 · 控制台</div>
 
   <div class="card">
@@ -281,6 +304,11 @@ function buildHtml(): string {
   </div>
 
   <div class="card">
+    <div class="card-title">上次请求</div>
+    <div class="hint" id="lastRequest">暂无（按一次 Cmd+E 后显示）</div>
+  </div>
+
+  <div class="card">
     <div class="card-title">操作</div>
     <div class="grid">
       <button class="primary" id="run">生成公式</button>
@@ -322,6 +350,19 @@ function buildHtml(): string {
         ' · 思考 ' + state.effort +
         ' · ' + state.style +
         ' · ' + state.contextTokens + ' tokens';
+
+      const last = state.lastRequest;
+      if (last) {
+        const cache = last.cachePercent === undefined
+          ? 'cache ?'
+          : 'cache ' + last.cachePercent + '%';
+        $('lastRequest').textContent =
+          (last.elapsedMs / 1000).toFixed(1) + 's · ' + cache +
+          ' (' + (last.cacheHitTokens || 0) + '/' + (last.promptTokens || 0) + ' tokens)' +
+          ' · ' + last.attempts + ' 次 · ' + last.style;
+      } else {
+        $('lastRequest').textContent = '暂无（按一次 Cmd+E 后显示）';
+      }
     }
 
     function bindSelect(id, key) {

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { resolveApiKey, SECRET_KEY } from './apiKey';
+import { cachePercent, getLastRequest, setLastRequest } from './lastRequest';
 import { checkLatexSuggestion, LatexIssue } from './latexCheck';
 import { ControlPanel } from './panel';
 import { chatCompletion } from './chatClient';
@@ -10,7 +11,7 @@ import { buildMessages } from './prompt';
 import { log } from './log';
 import { httpRequest } from './httpPost';
 import { resolveProxyCandidates } from './proxy';
-import { FormulaStyle, MathContext, ProxyChoice, ReasoningEffort } from './types';
+import { ChatUsage, FormulaStyle, MathContext, ProxyChoice, ReasoningEffort } from './types';
 
 interface PendingSuggestion {
   uri: string;
@@ -37,7 +38,7 @@ let selectionPreview: SelectionPreview | undefined;
 let cancelPreviewOnDeactivate: (() => void) | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-  const out = vscode.window.createOutputChannel('Agent Complete');
+  const out = vscode.window.createOutputChannel('TAME');
   context.subscriptions.push(out);
 
   // ---- 选区替换预览：红色标记原文，绿色预览替换文本，Tab 接受 / Esc 取消 ----
@@ -76,7 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
     clearSelectionPreview();
     if (!stillValid) {
       vscode.window.setStatusBarMessage(
-        '$(circle-slash) Agent Complete：选区已变化，取消替换',
+        '$(circle-slash) TAME：选区已变化，取消替换',
         2500,
       );
       return;
@@ -88,14 +89,14 @@ export function activate(context: vscode.ExtensionContext) {
     );
     if (!applied) {
       vscode.window.setStatusBarMessage(
-        '$(warning) Agent Complete：替换失败（文档可能已变化）',
+        '$(warning) TAME：替换失败（文档可能已变化）',
         4000,
       );
       return;
     }
     log(out, `已替换选区：${active.text.length} 字符`);
     vscode.window.setStatusBarMessage(
-      `$(check) Agent Complete：已替换选区（${active.text.length} 字符）`,
+      `$(check) TAME：已替换选区（${active.text.length} 字符）`,
       3000,
     );
   };
@@ -202,7 +203,7 @@ export function activate(context: vscode.ExtensionContext) {
     100,
   );
   statusBar.command = 'agentComplete.openControlPanel';
-  statusBar.tooltip = '打开 Agent Complete 控制台';
+  statusBar.tooltip = '打开 TAME 控制台';
   statusBar.show();
   context.subscriptions.push(statusBar);
 
@@ -210,7 +211,12 @@ export function activate(context: vscode.ExtensionContext) {
     const effort = vscode.workspace
       .getConfiguration('agentComplete')
       .get<ReasoningEffort>('reasoningEffort', 'none');
-    statusBar.text = `$(zap) Agent Complete · ${effort}`;
+    const last = getLastRequest();
+    const pct = cachePercent(last);
+    statusBar.text = `$(zap) TAME · ${effort}${pct !== undefined ? ` · cache ${pct}%` : ''}`;
+    statusBar.tooltip = last
+      ? `上次请求 ${last.elapsedMs}ms · cache ${pct ?? '?'}% · ${last.attempts} 次 · ${last.style}`
+      : '打开 TAME 控制台';
   };
   updateStatusBar();
 
@@ -245,7 +251,7 @@ export function activate(context: vscode.ExtensionContext) {
       });
       if (!key) return;
       await context.secrets.store(SECRET_KEY, key.trim());
-      vscode.window.showInformationMessage('Agent Complete：API key 已保存。');
+      vscode.window.showInformationMessage('TAME：API key 已保存。');
     }),
   );
 
@@ -299,7 +305,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (!apiKey) {
         out.appendLine('未设置 API key，跳过连通性测试。');
         vscode.window.showInformationMessage(
-          'Agent Complete 网络诊断：代理信息已输出到面板（未设置 key，跳过连通性测试）。',
+          'TAME 网络诊断：代理信息已输出到面板（未设置 key，跳过连通性测试）。',
         );
         return;
       }
@@ -328,7 +334,7 @@ export function activate(context: vscode.ExtensionContext) {
           );
           if (response.status >= 200 && response.status < 300) {
             vscode.window.showInformationMessage(
-              `Agent Complete 网络诊断：${source} 可用（${elapsed}ms）`,
+              `TAME 网络诊断：${source} 可用（${elapsed}ms）`,
             );
             return;
           }
@@ -340,7 +346,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       vscode.window.showWarningMessage(
-        'Agent Complete 网络诊断：所有代理候选都失败，详情见输出面板。',
+        'TAME 网络诊断：所有代理候选都失败，详情见输出面板。',
       );
     }),
   );
@@ -396,7 +402,7 @@ export function activate(context: vscode.ExtensionContext) {
     const languages = config.get<string[]>('languages', []);
     if (!languages.includes(document.languageId)) {
       vscode.window.setStatusBarMessage(
-        `$(circle-slash) Agent Complete：当前语言（${document.languageId}）未启用`,
+        `$(circle-slash) TAME：当前语言（${document.languageId}）未启用`,
         2500,
       );
       return;
@@ -404,7 +410,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (isExcluded(document.uri, config.get<string[]>('excludeGlobs', []))) {
       vscode.window.setStatusBarMessage(
-        '$(shield) Agent Complete：该文件在排除列表中，不会上传内容',
+        '$(shield) TAME：该文件在排除列表中，不会上传内容',
         3000,
       );
       return;
@@ -414,7 +420,7 @@ export function activate(context: vscode.ExtensionContext) {
     const apiKey = apiKeyInfo.key;
     if (!apiKey) {
       const choice = await vscode.window.showWarningMessage(
-        'Agent Complete：找不到 API key。可在仓库根目录放 api.txt，或用命令保存到 SecretStorage。',
+        'TAME：找不到 API key。可在仓库根目录放 api.txt，或用命令保存到 SecretStorage。',
         '去设置',
       );
       if (choice === '去设置') {
@@ -470,7 +476,8 @@ export function activate(context: vscode.ExtensionContext) {
       out,
       `请求：${document.languageId} | mode=${math.mode}(${math.reason}) | effort=${effort} | ` +
         `proxies=${proxyCandidates.map((c) => c.source).join(',') || 'none(direct)'} | ` +
-        `上下文 ${codeContext.prefix.length}+${codeContext.suffix.length} 字符` +
+        `上下文 ${codeContext.prefix.length}+${codeContext.suffix.length} 字符 | ` +
+        `section=${codeContext.section || '-'} | macros=${codeContext.macros.length} 字符` +
         (hasSelection
           ? ` | 选区 ${selectedText.length} 字符（实际发送 ${codeContext.selection?.length ?? 0}）`
           : ''),
@@ -478,13 +485,13 @@ export function activate(context: vscode.ExtensionContext) {
     const effortLabel = effort === 'none' ? '快速' : `思考 ${effort}`;
     const actionLabel = hasSelection ? `${effortLabel}，替换选区` : effortLabel;
     let status = vscode.window.setStatusBarMessage(
-      `$(sync~spin) Agent Complete 生成中（${actionLabel}）…`,
+      `$(sync~spin) TAME 生成中（${actionLabel}）…`,
     );
     const ticker = setInterval(() => {
       const seconds = Math.round((Date.now() - startedAt) / 1000);
       status.dispose();
       status = vscode.window.setStatusBarMessage(
-        `$(sync~spin) Agent Complete 生成中（${actionLabel}，${seconds}s）…`,
+        `$(sync~spin) TAME 生成中（${actionLabel}，${seconds}s）…`,
       );
     }, 1000);
 
@@ -510,7 +517,7 @@ export function activate(context: vscode.ExtensionContext) {
     const validateTarget = (): boolean => {
       if (document.version !== versionAtTrigger) {
         vscode.window.setStatusBarMessage(
-          '$(circle-slash) Agent Complete：文档已变化，丢弃这次结果',
+          '$(circle-slash) TAME：文档已变化，丢弃这次结果',
           2500,
         );
         return false;
@@ -522,7 +529,7 @@ export function activate(context: vscode.ExtensionContext) {
           !editor.selection.isEqual(selection)
         ) {
           vscode.window.setStatusBarMessage(
-            '$(circle-slash) Agent Complete：选区已变化，丢弃这次结果',
+            '$(circle-slash) TAME：选区已变化，丢弃这次结果',
             2500,
           );
           return false;
@@ -532,13 +539,15 @@ export function activate(context: vscode.ExtensionContext) {
         !editor.selection.active.isEqual(position)
       ) {
         vscode.window.setStatusBarMessage(
-          '$(circle-slash) Agent Complete：光标已移动，丢弃这次结果',
+          '$(circle-slash) TAME：光标已移动，丢弃这次结果',
           2500,
         );
         return false;
       }
       return true;
     };
+
+    let attempts = 1;
 
     try {
       let result = await chatCompletion({ ...requestOptions, messages });
@@ -554,15 +563,15 @@ export function activate(context: vscode.ExtensionContext) {
         `生成 ${result.elapsedMs}ms | mode=${math.mode} | ` +
           `上下文 ${codeContext.prefix.length}+${codeContext.suffix.length} 字符 | ` +
           `输出 ${text.length} 字符（${suggestionStyle(text)}） | ` +
-          `finish=${result.finishReason ?? 'unknown'} | proxy=${result.proxySource ?? 'direct'} | ` +
-          `usage=${JSON.stringify(result.usage)}`,
+          `finish=${result.finishReason ?? 'unknown'} | ${cacheLabel(result.usage)} | ` +
+          `proxy=${result.proxySource ?? 'direct'} | usage=${JSON.stringify(result.usage)}`,
       );
 
       if (!text) {
         vscode.window.setStatusBarMessage(
           result.finishReason === 'length'
-            ? '$(circle-slash) Agent Complete：模型输出被截断（max_tokens 不足）'
-            : '$(circle-slash) Agent Complete：模型没有给出公式',
+            ? '$(circle-slash) TAME：模型输出被截断（max_tokens 不足）'
+            : '$(circle-slash) TAME：模型没有给出公式',
           3500,
         );
         return;
@@ -574,8 +583,9 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (issues.length > 0) {
         log(out, `语法检查未通过（第 1 次）：${formatIssues(issues)}`);
+        attempts = 2;
         const retryStatus = vscode.window.setStatusBarMessage(
-          '$(sync~spin) Agent Complete 语法检查未通过，正在重试…',
+          '$(sync~spin) TAME 语法检查未通过，正在重试…',
         );
         try {
           result = await chatCompletion({
@@ -596,14 +606,15 @@ export function activate(context: vscode.ExtensionContext) {
         log(
           out,
           `重试 ${result.elapsedMs}ms | 输出 ${text.length} 字符（${suggestionStyle(text)}） | ` +
-            `finish=${result.finishReason ?? 'unknown'} | usage=${JSON.stringify(result.usage)}`,
+            `finish=${result.finishReason ?? 'unknown'} | ${cacheLabel(result.usage)} | ` +
+            `usage=${JSON.stringify(result.usage)}`,
         );
 
         if (!text) {
           vscode.window.setStatusBarMessage(
             result.finishReason === 'length'
-              ? '$(circle-slash) Agent Complete：模型输出被截断（max_tokens 不足）'
-              : '$(circle-slash) Agent Complete：重试后模型仍然没有给出公式',
+              ? '$(circle-slash) TAME：模型输出被截断（max_tokens 不足）'
+              : '$(circle-slash) TAME：重试后模型仍然没有给出公式',
             3500,
           );
           return;
@@ -615,12 +626,25 @@ export function activate(context: vscode.ExtensionContext) {
         if (issues.length > 0) {
           log(out, `语法检查未通过（重试后放弃）：${formatIssues(issues)}`);
           vscode.window.setStatusBarMessage(
-            `$(circle-slash) Agent Complete：语法检查未通过，已放弃（${formatIssues(issues).slice(0, 100)}）`,
+            `$(circle-slash) TAME：语法检查未通过，已放弃（${formatIssues(issues).slice(0, 100)}）`,
             6000,
           );
           return;
         }
       }
+
+      setLastRequest({
+        elapsedMs: Date.now() - startedAt,
+        promptTokens: result.usage.promptTokens,
+        completionTokens: result.usage.completionTokens,
+        reasoningTokens: result.usage.reasoningTokens,
+        cacheHitTokens: result.usage.cacheHitTokens,
+        attempts,
+        mode: math.mode,
+        style: suggestionStyle(text),
+      });
+      void panel.refresh();
+      updateStatusBar();
 
       // 有选区：红色标记原文 + 绿色预览替换文本，Tab 才真正替换。
       // （ghost text 的 range 不能跨行，所以这里用装饰器做预览，不直接改文档。）
@@ -655,7 +679,7 @@ export function activate(context: vscode.ExtensionContext) {
           `proxyCandidates=${proxyCandidates.map((c) => c.source).join(',') || 'none'}`,
       );
       vscode.window.setStatusBarMessage(
-        `$(error) Agent Complete 失败：${friendlyError(error)}`,
+        `$(error) TAME 失败：${friendlyError(error)}`,
         6000,
       );
     } finally {
@@ -706,6 +730,13 @@ function formatIssues(issues: LatexIssue[]): string {
 function buildRetryMessage(issues: LatexIssue[]): string {
   const lines = issues.map((issue) => `- ${issue.message}`).join('\n');
   return `你上一次输出没有通过简单语法检查：\n${lines}\n请只输出修正后的公式本身，不要解释，也不要重复上下文中已有内容。`;
+}
+
+function cacheLabel(usage: ChatUsage): string {
+  if (!usage.promptTokens) return 'cache=?';
+  const hit = usage.cacheHitTokens ?? 0;
+  const pct = Math.round((hit / usage.promptTokens) * 100);
+  return `cache=${hit}/${usage.promptTokens} (${pct}%)`;
 }
 
 /** 把错误归类成适合状态栏的一句话；完整原因仍写日志。 */

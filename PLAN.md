@@ -1,6 +1,6 @@
-# agent-complete 插件计划（VSCode · Cmd+E · DeepSeek）
+# TAME 插件计划（VSCode · Cmd+E · DeepSeek）
 
-- 状态：v0.9（M0–M3 已完成；M4 上下文工程进行中）
+- 状态：v0.11（M0–M4 已完成；M5 代码模式/发布进行中；显示名 TAME）
 - 日期：2026-11-03（v0.5 更新：2026-11-04）
 - 仓库：`notes-writing/`（分支 main，git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>`，远程 https://github.com/JianzheLi/notes-writing）
 - 代码：`notes-writing/agent-complete/`；开发流程见 [DEV-PLAN.md](DEV-PLAN.md)
@@ -195,7 +195,7 @@ Cmd+E
 3. 有选区 → 用选区作为描述，生成后**替换选区**（行内/行间按设置或自动判断）
 4. 无数学环境：光标在行尾或空行 → 行间块；光标在句子中间 → 行内
 5. 设置项 `agentComplete.formulaStyle = auto | inline | display`（默认 auto）
-6. 提供两个命令面板命令用于强制：`Agent Complete: 生成行内公式`、`Agent Complete: 生成行间公式`（不额外占快捷键）
+6. 提供两个命令面板命令用于强制：`TAME: 生成行内公式`、`TAME: 生成行间公式`（不额外占快捷键）
 
 ## 9. 延迟与成本
 
@@ -280,6 +280,8 @@ agent-complete/
 | 2026-11-04 | 默认思考强度 `max`（flash + thinking enabled + reasoning_effort max）；maxTokens 8192、timeout 90s |
 | 2026-11-05 | 默认思考强度改为 `none`；新增 Activity Bar 控制台与状态栏入口 |
 | 2026-11-05 | M3：简单语法检查（`$`/`{}`/`\left`/`\begin`）+ 失败重试 1 次 + 错误分类 |
+| 2026-11-05 | 显示名改为 TAME（Text-to-equation Assistant for Markdown Editing）；内部 ID 暂留 `agentComplete.*` |
+| 2026-11-05 | M4：宏定义/小节结构上下文；长文档省略中间；前文 90% / 后文 10%；控制台与状态栏显示 cache 命中 |
 | 2026-11-04 | git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>` |
 | 2026-11-04 | 远程仓库 GitHub `JianzheLi/notes-writing`（private），M0 已推送 |
 

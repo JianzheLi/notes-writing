@@ -18,7 +18,10 @@ export interface MathContext {
 export interface CodeContext {
   prefix: string;
   suffix: string;
+  /** 当前小节路径，例如 `3. 采样 > 3.2 得分匹配`。 */
   section: string;
+  /** 从全文抽取的宏定义/符号（短文档里已包含在 prefix 中时为空）。 */
+  macros: string;
   lineBefore: string;
   /** 选区文字（仅在有选区时存在），作为公式描述传给模型。 */
   selection?: string;
