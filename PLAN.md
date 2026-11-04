@@ -28,7 +28,7 @@
 **v0.4 → v0.5**
 
 9. 默认思考强度定为 **`max`**（`deepseek-flash` + thinking enabled + `reasoning_effort: max`）；`maxTokens` 提到 8192、`timeoutMs` 提到 90s。
-10. 远程仓库已创建并推送：GitHub `JianzheLi/notes-writing`（private）。
+10. 远程仓库已创建并推送：GitHub `JianzheLi/notes-writing`（public）。
 11. 新增 [DEV-PLAN.md](DEV-PLAN.md)：开发流程、子智能体分工、审查清单、里程碑与提交/打 tag 规则。
 9. 远程仓库：本机没有 GitHub 凭证，需要用户登录后由我创建（见第 15 节）。
 
@@ -260,7 +260,7 @@ agent-complete/
 
 ## 13. 待确认
 
-1. 远程仓库已建好并推送 M0：https://github.com/JianzheLi/notes-writing（private）。
+1. 远程仓库已建好并推送 M0：https://github.com/JianzheLi/notes-writing（public）。
 2. 默认思考强度已按你的要求改为 `none`；需要更高质量时在控制台/设置里切到 `high` 或 `max`。
 3. 开发流程与分工见 [DEV-PLAN.md](DEV-PLAN.md)，请确认里程碑划分与"先本地验收、再 push 远程"的规则。
 4. 计划确认后是否开工 M1？
@@ -283,11 +283,11 @@ agent-complete/
 | 2026-11-05 | 显示名改为 TAME（Text-to-equation Assistant for Markdown Editing）；内部 ID 暂留 `agentComplete.*` |
 | 2026-11-05 | M4：宏定义/小节结构上下文；长文档省略中间；前文 90% / 后文 10%；控制台与状态栏显示 cache 命中 |
 | 2026-11-04 | git 身份 `jianzheli <jianzheli@stu.pku.edu.cn>` |
-| 2026-11-04 | 远程仓库 GitHub `JianzheLi/notes-writing`（private），M0 已推送 |
+| 2026-11-04 | 远程仓库 GitHub `JianzheLi/notes-writing`（public），M0 已推送 |
 
 ## 15. 远程仓库
 
-- 已创建并推送：**https://github.com/JianzheLi/notes-writing**（private，main 分支）
+- 已创建并推送：**https://github.com/JianzheLi/notes-writing**（public，main 分支）
 - 本机 GitHub CLI 已登录（账号 `JianzheLi`，token 存在 macOS keyring）
 - 每个 milestone 完成后：本地验收通过 → commit 到 main → `git push` → 打 tag（`m0`、`m1`…）
 - 开发流程与子智能体分工见 [DEV-PLAN.md](DEV-PLAN.md)
