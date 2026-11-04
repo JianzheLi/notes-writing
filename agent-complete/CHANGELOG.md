@@ -11,6 +11,7 @@
   - `\$` 转义、金额 `$100`、未闭合 `$x + `、空行复位等启发式；扫描窗口向后多取 200 行以寻找行内公式闭合 `$`
   - 强制命令 `Agent Complete: 生成行内公式` / `生成行间公式` 接入并补充状态栏提示
   - 纯函数单测：`tests/`（`npm test`）；review 后补的回归用例覆盖 `\$` 结尾、未闭合围栏、`\(...\)` 归一、掩码顺序、金额+CJK、LaTeX 空格、`align*` 配对
+  - API key 支持从本地 `api.txt` 自动载入（文件优先于 SecretStorage，路径可用 `agentComplete.apiKeyFile` 配置）
 
 - **M1（公式生成最小闭环）**
   - `Cmd+E` 触发：采集光标前文/后文（默认 32k token 预算）→ DeepSeek Chat Completions → 后处理 → ghost text
@@ -27,6 +28,8 @@
 
 ### Fixed
 
+- VS Code 1.144 扩展宿主里 `execFile` 默认解码触发 `StringDecoder is not a constructor`：系统代理探测改用 `encoding: 'buffer'` 手动解码；代理解析失败也不再中断 Cmd+E。
+- API key 文件（`api.txt`）自动读取失败时静默回退 SecretStorage。
 - 扩展宿主内 `fetch failed`：网络层改用 Node `https.request`，**始终跟随本机代理**（`agentComplete.proxy` → `http.proxy` → 环境变量 → macOS 系统代理），不自行直连；只有本机未配置代理时才直连。SOCKS 统一用 `socks5h` 由代理解析域名，多个代理候选依次尝试。错误信息带 cause 码与代理来源。
 - 新增 `Agent Complete: 网络诊断` 命令：打印代理来源并实测 API 连通性。
 

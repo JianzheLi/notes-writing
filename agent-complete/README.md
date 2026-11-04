@@ -18,7 +18,7 @@
 
 1. 用 VS Code 打开 **`agent-complete` 文件夹**（不要打开上层 `notes-writing`，`launch.json` 的 `${workspaceFolder}` 指向扩展目录）。
 2. 按 `F5`，会新开一个"扩展开发宿主"窗口。
-3. 在新窗口按 `Cmd+Shift+P` → 执行 **`Agent Complete: 设置 DeepSeek API Key`**，粘贴 key（存 SecretStorage，不会写进文件）。
+3. 在新窗口按 `Cmd+Shift+P` → 执行 **`Agent Complete: 设置 DeepSeek API Key`**；或者把 key 放到仓库根目录的 `api.txt`（扩展会自动读取，文件已在 `.gitignore` 里）。
 4. 打开一个 `.md` 或 `.tex` 文件，写完一句描述、把光标放在要插入公式的位置，按 **`Cmd+E`**。
 5. 公式以 ghost text 出现后：`Tab` 接受、`Esc` 取消、`Cmd+→` 逐词接受。
 6. 选区替换：选中一句描述（整行或句中短语都行）再按 `Cmd+E`，原文标红、替换内容标绿；`Tab` 接受替换，`Esc` 取消。
@@ -36,7 +36,13 @@
 | `agentComplete.formulaStyle` | `auto` | `auto` 由模型判断行内/行间；`inline / display` 强制 |
 | `agentComplete.languages` | markdown / latex / tex / python | 允许触发的语言 |
 | `agentComplete.baseUrl` | `https://api.deepseek.com` | 代理/网关时改这里 |
+| `agentComplete.apiKeyFile` | `api.txt` | 本地 key 文件名；相对工作区/扩展目录/上一级查找，命中后自动读取 |
 | `agentComplete.proxy` | 空 | 手动指定代理（优先于自动检测），如 `socks5://127.0.0.1:13659` |
+
+### API key 的两种方式
+
+- **推荐 `api.txt`**：在仓库根目录（或 `agent-complete/`）放一个 `api.txt`，内容一行 `sk-...` 即可（也支持 `DEEPSEEK_API_KEY=sk-...`）。扩展每次请求时自动读取，文件已加入 `.gitignore`。
+- **SecretStorage**：命令面板 `Agent Complete: 设置 DeepSeek API Key`，存进系统钥匙串；文件存在时优先用文件。
 
 ## 排错
 

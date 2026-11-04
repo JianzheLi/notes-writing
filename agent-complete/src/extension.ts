@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { resolveApiKey, SECRET_KEY } from './apiKey';
 import { chatCompletion } from './chatClient';
 import { buildContext, isExcluded } from './context';
 import { detectMathContext, selectionStyle } from './mathMode';
@@ -8,8 +9,6 @@ import { log } from './log';
 import { httpRequest } from './httpPost';
 import { resolveProxyCandidates } from './proxy';
 import { FormulaStyle, MathContext, ProxyChoice, ReasoningEffort } from './types';
-
-const SECRET_KEY = 'agentComplete.deepseekApiKey';
 
 interface PendingSuggestion {
   uri: string;
@@ -213,7 +212,12 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('agentComplete.diagnostics', async () => {
       const config = vscode.workspace.getConfiguration('agentComplete');
-      const candidates = await resolveProxyCandidates();
+      let candidates: ProxyChoice[] = [];
+      try {
+        candidates = await resolveProxyCandidates();
+      } catch (error) {
+        out.appendLine(`代理解析失败：${describeError(error)}`);
+      }
       const envNames = [
         'HTTPS_PROXY',
         'https_proxy',
@@ -248,7 +252,9 @@ export function activate(context: vscode.ExtensionContext) {
       );
       out.show(true);
 
-      const apiKey = await context.secrets.get(SECRET_KEY);
+      const keyInfo = await resolveApiKey(context);
+      const apiKey = keyInfo.key;
+      out.appendLine(`API key 来源：${keyInfo.source ?? '未设置'}`);
       if (!apiKey) {
         out.appendLine('未设置 API key，跳过连通性测试。');
         vscode.window.showInformationMessage(
@@ -359,10 +365,11 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    const apiKey = await context.secrets.get(SECRET_KEY);
+    const apiKeyInfo = await resolveApiKey(context);
+    const apiKey = apiKeyInfo.key;
     if (!apiKey) {
       const choice = await vscode.window.showWarningMessage(
-        'Agent Complete：还没有设置 DeepSeek API key。',
+        'Agent Complete：找不到 API key。可在仓库根目录放 api.txt，或用命令保存到 SecretStorage。',
         '去设置',
       );
       if (choice === '去设置') {
@@ -370,6 +377,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
       return;
     }
+    log(out, `API key 来源：${apiKeyInfo.source ?? 'unknown'}`);
 
     inflight?.abort();
     pending = undefined;
@@ -404,7 +412,13 @@ export function activate(context: vscode.ExtensionContext) {
     const versionAtTrigger = document.version;
 
     // 网络策略：始终跟随本机代理；只有本机完全没有代理配置时才直连。
-    const proxyCandidates = await resolveProxyCandidates();
+    // 代理解析失败不能拖垮整个命令（VS Code 1.144 的 execFile 曾抛 StringDecoder 错误）。
+    let proxyCandidates: ProxyChoice[] = [];
+    try {
+      proxyCandidates = await resolveProxyCandidates();
+    } catch (error) {
+      log(out, `代理解析失败，按直连处理：${describeError(error)}`);
+    }
 
     const startedAt = Date.now();
     log(

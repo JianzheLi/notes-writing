@@ -100,6 +100,11 @@
           "default": "https://api.deepseek.com",
           "description": "DeepSeek API base URL。"
         },
+        "agentComplete.apiKeyFile": {
+          "type": "string",
+          "default": "api.txt",
+          "description": "本地 API key 文件名或绝对路径。相对路径会依次在工作区根目录、扩展目录、扩展目录上一级查找；命中后自动读取，无需每次输入。api.txt 已被 .gitignore 忽略。"
+        },
         "agentComplete.proxy": {
           "type": "string",
           "default": "",

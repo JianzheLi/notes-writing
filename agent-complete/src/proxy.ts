@@ -39,34 +39,48 @@ export function getSystemProxy(): Promise<ProxyChoice | undefined> {
       resolve(undefined);
       return;
     }
-    execFile('scutil', ['--proxy'], { timeout: 1500 }, (error, stdout) => {
-      if (error || !stdout) {
-        resolve(undefined);
-        return;
-      }
 
-      const socks = /SOCKSEnable\s*:\s*1[\s\S]*?SOCKSProxy\s*:\s*(\S+)[\s\S]*?SOCKSPort\s*:\s*(\d+)/.exec(stdout);
-      if (socks) {
-        resolve({ url: `socks5://${socks[1]}:${socks[2]}`, source: 'system' });
-        return;
-      }
+    // 用 encoding: 'buffer' 自己解码：VS Code 1.144 扩展宿主里 execFile 默认的
+    // StringDecoder 会抛 "StringDecoder is not a constructor"（Copilot 也中招）。
+    try {
+      execFile(
+        'scutil',
+        ['--proxy'],
+        { timeout: 1500, encoding: 'buffer' },
+        (error, stdout) => {
+          const text = stdout ? stdout.toString('utf8') : '';
+          if (error || !text) {
+            resolve(undefined);
+            return;
+          }
 
-      const httpsProxy =
-        /HTTPSEnable\s*:\s*1[\s\S]*?HTTPSProxy\s*:\s*(\S+)[\s\S]*?HTTPSPort\s*:\s*(\d+)/.exec(stdout);
-      if (httpsProxy) {
-        resolve({ url: `http://${httpsProxy[1]}:${httpsProxy[2]}`, source: 'system' });
-        return;
-      }
+          const socks = /SOCKSEnable\s*:\s*1[\s\S]*?SOCKSProxy\s*:\s*(\S+)[\s\S]*?SOCKSPort\s*:\s*(\d+)/.exec(text);
+          if (socks) {
+            resolve({ url: `socks5://${socks[1]}:${socks[2]}`, source: 'system' });
+            return;
+          }
 
-      const httpProxy =
-        /HTTPEnable\s*:\s*1[\s\S]*?HTTPProxy\s*:\s*(\S+)[\s\S]*?HTTPPort\s*:\s*(\d+)/.exec(stdout);
-      if (httpProxy) {
-        resolve({ url: `http://${httpProxy[1]}:${httpProxy[2]}`, source: 'system' });
-        return;
-      }
+          const httpsProxy =
+            /HTTPSEnable\s*:\s*1[\s\S]*?HTTPSProxy\s*:\s*(\S+)[\s\S]*?HTTPSPort\s*:\s*(\d+)/.exec(text);
+          if (httpsProxy) {
+            resolve({ url: `http://${httpsProxy[1]}:${httpsProxy[2]}`, source: 'system' });
+            return;
+          }
 
+          const httpProxy =
+            /HTTPEnable\s*:\s*1[\s\S]*?HTTPProxy\s*:\s*(\S+)[\s\S]*?HTTPPort\s*:\s*(\d+)/.exec(text);
+          if (httpProxy) {
+            resolve({ url: `http://${httpProxy[1]}:${httpProxy[2]}`, source: 'system' });
+            return;
+          }
+
+          resolve(undefined);
+        },
+      );
+    } catch {
+      // 扩展宿主不允许子进程等情况下，按没有系统代理处理。
       resolve(undefined);
-    });
+    }
   });
 }
 

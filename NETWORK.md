@@ -80,7 +80,7 @@
 
 ## 7. 本地存储与日志
 
-- **API key**：存在 VS Code `SecretStorage`（macOS 上是 Keychain），不写配置文件、不进代码仓库、不打印
+- **API key**：可放在本地 `api.txt`（默认在工作区根目录/扩展目录/上一级查找，文件已在 `.gitignore` 中），或存在 VS Code `SecretStorage`（macOS 上是 Keychain）；两种情况都不进代码仓库、不打印
 - **日志**：VS Code 输出面板 `Agent Complete`，记录：语言、行内/行间模式、思考强度、代理来源、上下文长度、输出长度、耗时、token usage、错误原因；**不记录 prompt 正文和 key**
 - 日志仅存在本机，不会上传
 
