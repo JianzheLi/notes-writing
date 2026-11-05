@@ -132,15 +132,32 @@ npm test              # 113 个纯函数单测
 
 | 名称 | 展开 | 优点 | 风险 |
 | --- | --- | --- | --- |
-| **TAME**（当前） | **T**ext-to-equation **A**ssistant for **M**arkdown **E**diting | 4 字母、像单词、正好描述“把 LaTeX 驯服”；`tame` 也适合做包名 | “tame” 有“平淡/驯服”的双关；需查重名 |
-| **MATE** | **M**arkdown **A**ssistant for **T**eX **E**quations | 友好（writing mate），和 Markdown/TeX 直接相关 | 常见词，可能出现多个同名产品 |
-| **EqScribe** | **Eq**uation **Scribe** | 唯一性更好，直接说明“写公式” | 8 字母，稍长；没有“agent”感 |
-| **CmdEq** | **Cmd+E** → **Eq**uation | 和快捷键强绑定，短、好记 | 快捷键如果改就失效；搜索词偏窄 |
-| **TeXMate** | **TeX** + **Mate** | 一眼看出 TeX 写作搭档 | 7 字母；“mate” 较常见 |
-| **MUSE** | **M**arkdown **U**tility for **S**cientific **E**quations | 短、有“灵感”含义 | MUSE 被很多产品使用，重名风险高 |
-| **EqWrite** | **Eq**uation + **Write** | 直白、容易理解 | 比较普通，缺少记忆点 |
+`TeamMate` / `TeXMate` 的初步检索（2026-11-05）：
 
-**倾向**：短期继续用 **TAME**（已经改好 package/display，内部 ID 未动）；如果想要更“搭档”的语气，**MATE** 是最强备选；如果更看重唯一性，选 **EqScribe**。名称确定后只需改 `package.json` 的 `name`/`displayName`、面板标题和文档；命令/设置 ID 留到 M6 一起迁移。
+- `TeamMate` 是 Wolters Kluwer 的审计管理产品（[官网](https://www.wolterskluwer.com/en/solutions/solutions%20bucket/2020/03/13/20/27/teammate)），不建议直接用。
+- `TeXMate` 已有一个同名的 AI LaTeX 在线编辑器（[texmate.es](https://texmate.es/)），不建议直接用。
+- “Mate” 后缀本身很好，可以保留感觉、换掉前缀；以下候选未做 Marketplace 精确检索与商标检索。
+
+| 名称 | 展开 | 优点 | 风险 |
+| --- | --- | --- | --- |
+| **EqMate** | **Eq**uation + **Mate** | 最接近 TeamMate 的“搭档”感；6 字母；公式写作明确 | “mate” 较常见，需查重 |
+| **TeXQuill** | **TeX** + **Quill** | 羽毛笔/写作 + TeX；独特、有画面感 | 8 字母；不如 mate 口语化 |
+| **TAME**（当前） | **T**ext-to-equation **A**ssistant for **M**arkdown **E**diting | 4 字母、像单词、“把 LaTeX 驯服”；包名已就绪 | “tame” 有“平淡/驯服”的双关；需查重名 |
+| **MATE** | **M**arkdown **A**ssistant for **T**eX **E**quations | 友好的“writing mate”，和 Markdown/TeX 直接相关 | 常见词，可能出现多个同名产品 |
+| **TEAM** | **T**ext-to-**E**quation **A**ssistant for **M**arkdown | 4 字母，和 TeamMate 近形；扩展自然 | 常见词，搜索冲突风险高 |
+| **EqScribe** | **Eq**uation **Scribe** | 唯一性更好，直接说明“写公式” | 8 字母，稍长；没有“agent”感 |
+| **TeXPal** | **TeX** + **Pal** | 6 字母，轻松友好 | 稍显幼稚；需查重 |
+| **CmdEq** | **Cmd+E** → **Eq**uation | 和快捷键强绑定，短、好记 | 快捷键如果改就失效；搜索词偏窄 |
+| **MUSE** | **M**arkdown **U**tility for **S**cientific **E**quations | 短、有“灵感”含义 | MUSE 被很多产品使用，重名风险高 |
+
+**倾向**：
+
+- 想要“TeamMate 的搭档感”，又不撞现有产品：**EqMate**（最推荐）
+- 想保留 TeX 字样、要独特：**TeXQuill**
+- 想继续用最短、最像一个词的名字：**TAME**（当前）或 **MATE**
+- `TeamMate` / `TeXMate` 暂不采用。
+
+名称确定后只需改 `package.json` 的 `name`/`displayName`、面板标题和文档；命令/设置 ID 留到 M6 一起迁移。
 
 ## 8. 相关文档
 
