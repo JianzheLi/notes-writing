@@ -150,11 +150,25 @@ npm test              # 113 个纯函数单测
 | **CmdEq** | **Cmd+E** → **Eq**uation | 和快捷键强绑定，短、好记 | 快捷键如果改就失效；搜索词偏窄 |
 | **MUSE** | **M**arkdown **U**tility for **S**cientific **E**quations | 短、有“灵感”含义 | MUSE 被很多产品使用，重名风险高 |
 
+### 单词型候选（“名字本身就是一个词”）
+
+| 名称 | 词义 | 优点 | 风险 |
+| --- | --- | --- | --- |
+| **Notate** | 动词：用记号/符号写下 | 直译“把描述写成记号”，6 字母，正好描述 text → notation；单词而非缩写 | 需查 Marketplace；名字偏安静 |
+| **Lemma** | 数学“引理” | 数学味强、优雅、6 字母 | 已有 LemmaScript VS Code 扩展 / npm 的 lemma 包，需避让 |
+| **Scribe** | 抄写员/书写者 | 写作意象直接，6 字母 | 比较通用，可能有同名产品 |
+| **Quill** | 羽毛笔 | 书写画面感强，5 字母 | QuillBot 等已有强关联，冲突风险高 |
+| **Chalk** | 粉笔 | 数学黑板感，5 字母 | 与“笔记/公式生成”关联弱一点 |
+| **Tome** | 厚书/学术书 | 笔记/论文感，4 字母 | 和公式关联弱 |
+| **TAME** | 驯服/温顺 | 当前已用，4 字母 | 语义偏“驯服”，不如 Notate 直接 |
+
 **倾向**：
 
-- 想要“TeamMate 的搭档感”，又不撞现有产品：**EqMate**（最推荐）
+- 想要“TeamMate 的搭档感”，又不撞现有产品：**EqMate**
 - 想保留 TeX 字样、要独特：**TeXQuill**
-- 想继续用最短、最像一个词的名字：**TAME**（当前）或 **MATE**
+- **必须本身是一个英文单词**：**Notate**（最推荐）
+  tagline 可以写成 “describe it. notate it.” 或 “从一句话到 LaTeX 记号”。
+- 想继续用最短的词：**TAME**（当前）
 - `TeamMate` / `TeXMate` 暂不采用。
 
 名称确定后只需改 `package.json` 的 `name`/`displayName`、面板标题和文档；命令/设置 ID 留到 M6 一起迁移。
