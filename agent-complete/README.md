@@ -110,3 +110,7 @@ npm test             # 编译 + node:test 纯函数单测
 DEEPSEEK_API_KEY=sk-xxx node scripts/smoke.mjs max   # 冒烟测试
 npm run package      # 打 vsix（需要 vsce）
 ```
+
+## 进度记录
+
+开发进度、每次提交/修复、已知风险和命名候选见 [PROGRESS.md](../PROGRESS.md)。
