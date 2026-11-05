@@ -9,7 +9,7 @@
   - 数学判定重构：新增 `src/mathScan.ts` 纯函数扫描器，支持 `$...$`、`$$...$$`、`\[...\]`、`\(...\)`、数学环境白名单（`figure/table/document` 不误判）、`align*` 等星号变体
   - 过滤 LaTeX `%` 注释、`\verb`/verbatim 环境、Markdown 围栏代码块/行内代码/HTML 注释
   - `\$` 转义、金额 `$100`、未闭合 `$x + `、空行复位等启发式；扫描窗口向后多取 200 行以寻找行内公式闭合 `$`
-  - 强制命令 `TAME: 生成行内公式` / `生成行间公式` 接入并补充状态栏提示
+  - 强制命令 `MATE: 生成行内公式` / `生成行间公式` 接入并补充状态栏提示
   - 纯函数单测：`tests/`（`npm test`）；review 后补的回归用例覆盖 `\$` 结尾、未闭合围栏、`\(...\)` 归一、掩码顺序、金额+CJK、LaTeX 空格、`align*` 配对
   - API key 支持从本地 `api.txt`、`.env`、环境变量 `DEEPSEEK_API_KEY` 自动载入（文件优先，最后回退 SecretStorage；路径可用 `agentComplete.apiKeyFile` 配置）
   - 新增左侧 Activity Bar 控制台（webview）：模型/思考强度/公式样式/上下文预算、API key 来源与设置、生成/行内/行间、网络诊断、输出面板；右下角状态栏也有入口
@@ -38,7 +38,7 @@
 
 ### Changed
 
-- 扩展显示名改为 **TAME**（Text-to-equation Assistant for Markdown Editing）；内部命令/设置 ID 暂时保留 `agentComplete.*`，M6 发布前再迁移
+- 最终定名 **MATE**（Markdown Assistant for TeX Equations）；内部命令/设置 ID 暂时保留 `agentComplete.*`，M6 发布前再迁移
 - 项目主场景从"Copilot 式代码补全"调整为"文字描述 → LaTeX 公式生成"
 - `formulaStyle=auto` 不再按"行尾/句中"硬判，改为由模型根据上下文决定行内/行间；本地只在明确的数学环境里做补全判定
 - 选区替换从"直接替换"改为红/绿预览 + `Tab` 确认，避免误替换
@@ -51,7 +51,7 @@
 - VS Code 1.144 扩展宿主里 `execFile` 默认解码触发 `StringDecoder is not a constructor`：系统代理探测改用 `encoding: 'buffer'` 手动解码；代理解析失败也不再中断 Cmd+E。
 - API key 文件（`api.txt`）自动读取失败时静默回退 SecretStorage。
 - 扩展宿主内 `fetch failed`：网络层改用 Node `https.request`，**始终跟随本机代理**（`agentComplete.proxy` → `http.proxy` → 环境变量 → macOS 系统代理），不自行直连；只有本机未配置代理时才直连。SOCKS 统一用 `socks5h` 由代理解析域名，多个代理候选依次尝试。错误信息带 cause 码与代理来源。
-- 新增 `TAME: 网络诊断` 命令：打印代理来源并实测 API 连通性。
+- 新增 `MATE: 网络诊断` 命令：打印代理来源并实测 API 连通性。
 
 ## [M0] - 2026-11-04
 

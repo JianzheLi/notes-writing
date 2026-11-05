@@ -38,7 +38,7 @@ let selectionPreview: SelectionPreview | undefined;
 let cancelPreviewOnDeactivate: (() => void) | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-  const out = vscode.window.createOutputChannel('TAME');
+  const out = vscode.window.createOutputChannel('MATE');
   context.subscriptions.push(out);
 
   // ---- 选区替换预览：红色标记原文，绿色预览替换文本，Tab 接受 / Esc 取消 ----
@@ -77,7 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
     clearSelectionPreview();
     if (!stillValid) {
       vscode.window.setStatusBarMessage(
-        '$(circle-slash) TAME：选区已变化，取消替换',
+        '$(circle-slash) MATE：选区已变化，取消替换',
         2500,
       );
       return;
@@ -89,14 +89,14 @@ export function activate(context: vscode.ExtensionContext) {
     );
     if (!applied) {
       vscode.window.setStatusBarMessage(
-        '$(warning) TAME：替换失败（文档可能已变化）',
+        '$(warning) MATE：替换失败（文档可能已变化）',
         4000,
       );
       return;
     }
     log(out, `已替换选区：${active.text.length} 字符`);
     vscode.window.setStatusBarMessage(
-      `$(check) TAME：已替换选区（${active.text.length} 字符）`,
+      `$(check) MATE：已替换选区（${active.text.length} 字符）`,
       3000,
     );
   };
@@ -203,7 +203,7 @@ export function activate(context: vscode.ExtensionContext) {
     100,
   );
   statusBar.command = 'agentComplete.openControlPanel';
-  statusBar.tooltip = '打开 TAME 控制台';
+  statusBar.tooltip = '打开 MATE 控制台';
   statusBar.show();
   context.subscriptions.push(statusBar);
 
@@ -213,10 +213,10 @@ export function activate(context: vscode.ExtensionContext) {
       .get<ReasoningEffort>('reasoningEffort', 'none');
     const last = getLastRequest();
     const pct = cachePercent(last);
-    statusBar.text = `$(zap) TAME · ${effort}${pct !== undefined ? ` · cache ${pct}%` : ''}`;
+    statusBar.text = `$(zap) MATE · ${effort}${pct !== undefined ? ` · cache ${pct}%` : ''}`;
     statusBar.tooltip = last
       ? `上次请求 ${last.elapsedMs}ms · cache ${pct ?? '?'}% · ${last.attempts} 次 · ${last.style}`
-      : '打开 TAME 控制台';
+      : '打开 MATE 控制台';
   };
   updateStatusBar();
 
@@ -251,7 +251,7 @@ export function activate(context: vscode.ExtensionContext) {
       });
       if (!key) return;
       await context.secrets.store(SECRET_KEY, key.trim());
-      vscode.window.showInformationMessage('TAME：API key 已保存。');
+      vscode.window.showInformationMessage('MATE：API key 已保存。');
     }),
   );
 
@@ -305,7 +305,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (!apiKey) {
         out.appendLine('未设置 API key，跳过连通性测试。');
         vscode.window.showInformationMessage(
-          'TAME 网络诊断：代理信息已输出到面板（未设置 key，跳过连通性测试）。',
+          'MATE 网络诊断：代理信息已输出到面板（未设置 key，跳过连通性测试）。',
         );
         return;
       }
@@ -334,7 +334,7 @@ export function activate(context: vscode.ExtensionContext) {
           );
           if (response.status >= 200 && response.status < 300) {
             vscode.window.showInformationMessage(
-              `TAME 网络诊断：${source} 可用（${elapsed}ms）`,
+              `MATE 网络诊断：${source} 可用（${elapsed}ms）`,
             );
             return;
           }
@@ -346,7 +346,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       vscode.window.showWarningMessage(
-        'TAME 网络诊断：所有代理候选都失败，详情见输出面板。',
+        'MATE 网络诊断：所有代理候选都失败，详情见输出面板。',
       );
     }),
   );
@@ -402,7 +402,7 @@ export function activate(context: vscode.ExtensionContext) {
     const languages = config.get<string[]>('languages', []);
     if (!languages.includes(document.languageId)) {
       vscode.window.setStatusBarMessage(
-        `$(circle-slash) TAME：当前语言（${document.languageId}）未启用`,
+        `$(circle-slash) MATE：当前语言（${document.languageId}）未启用`,
         2500,
       );
       return;
@@ -410,7 +410,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (isExcluded(document.uri, config.get<string[]>('excludeGlobs', []))) {
       vscode.window.setStatusBarMessage(
-        '$(shield) TAME：该文件在排除列表中，不会上传内容',
+        '$(shield) MATE：该文件在排除列表中，不会上传内容',
         3000,
       );
       return;
@@ -420,7 +420,7 @@ export function activate(context: vscode.ExtensionContext) {
     const apiKey = apiKeyInfo.key;
     if (!apiKey) {
       const choice = await vscode.window.showWarningMessage(
-        'TAME：找不到 API key。可在仓库根目录放 api.txt，或用命令保存到 SecretStorage。',
+        'MATE：找不到 API key。可在仓库根目录放 api.txt，或用命令保存到 SecretStorage。',
         '去设置',
       );
       if (choice === '去设置') {
@@ -485,13 +485,13 @@ export function activate(context: vscode.ExtensionContext) {
     const effortLabel = effort === 'none' ? '快速' : `思考 ${effort}`;
     const actionLabel = hasSelection ? `${effortLabel}，替换选区` : effortLabel;
     let status = vscode.window.setStatusBarMessage(
-      `$(sync~spin) TAME 生成中（${actionLabel}）…`,
+      `$(sync~spin) MATE 生成中（${actionLabel}）…`,
     );
     const ticker = setInterval(() => {
       const seconds = Math.round((Date.now() - startedAt) / 1000);
       status.dispose();
       status = vscode.window.setStatusBarMessage(
-        `$(sync~spin) TAME 生成中（${actionLabel}，${seconds}s）…`,
+        `$(sync~spin) MATE 生成中（${actionLabel}，${seconds}s）…`,
       );
     }, 1000);
 
@@ -517,7 +517,7 @@ export function activate(context: vscode.ExtensionContext) {
     const validateTarget = (): boolean => {
       if (document.version !== versionAtTrigger) {
         vscode.window.setStatusBarMessage(
-          '$(circle-slash) TAME：文档已变化，丢弃这次结果',
+          '$(circle-slash) MATE：文档已变化，丢弃这次结果',
           2500,
         );
         return false;
@@ -529,7 +529,7 @@ export function activate(context: vscode.ExtensionContext) {
           !editor.selection.isEqual(selection)
         ) {
           vscode.window.setStatusBarMessage(
-            '$(circle-slash) TAME：选区已变化，丢弃这次结果',
+            '$(circle-slash) MATE：选区已变化，丢弃这次结果',
             2500,
           );
           return false;
@@ -539,7 +539,7 @@ export function activate(context: vscode.ExtensionContext) {
         !editor.selection.active.isEqual(position)
       ) {
         vscode.window.setStatusBarMessage(
-          '$(circle-slash) TAME：光标已移动，丢弃这次结果',
+          '$(circle-slash) MATE：光标已移动，丢弃这次结果',
           2500,
         );
         return false;
@@ -570,10 +570,10 @@ export function activate(context: vscode.ExtensionContext) {
       if (!text) {
         vscode.window.setStatusBarMessage(
           result.finishReason === 'length'
-            ? '$(circle-slash) TAME：模型输出被截断（max_tokens 不足）'
+            ? '$(circle-slash) MATE：模型输出被截断（max_tokens 不足）'
             : result.finishReason && result.finishReason !== 'stop'
-              ? `$(circle-slash) TAME：模型输出未正常结束（${result.finishReason}）`
-              : '$(circle-slash) TAME：模型没有给出公式',
+              ? `$(circle-slash) MATE：模型输出未正常结束（${result.finishReason}）`
+              : '$(circle-slash) MATE：模型没有给出公式',
           4000,
         );
         return;
@@ -589,7 +589,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (otherNonStop) {
         log(out, `模型输出未正常结束：finish_reason=${finishReason}`);
         vscode.window.setStatusBarMessage(
-          `$(circle-slash) TAME：模型输出未正常结束（${finishReason}），已放弃`,
+          `$(circle-slash) MATE：模型输出未正常结束（${finishReason}），已放弃`,
           6000,
         );
         return;
@@ -605,7 +605,7 @@ export function activate(context: vscode.ExtensionContext) {
             `输出被截断，max_tokens 已达上限（${requestOptions.maxTokens}），不再重试`,
           );
           vscode.window.setStatusBarMessage(
-            '$(circle-slash) TAME：输出被截断（max_tokens 已达上限，可降低思考强度）',
+            '$(circle-slash) MATE：输出被截断（max_tokens 已达上限，可降低思考强度）',
             6000,
           );
           return;
@@ -641,8 +641,8 @@ export function activate(context: vscode.ExtensionContext) {
         attempts = 2;
         const retryStatus = vscode.window.setStatusBarMessage(
           truncated
-            ? '$(sync~spin) TAME 输出被截断，调大 max_tokens 重试中…'
-            : '$(sync~spin) TAME 语法检查未通过，正在重试…',
+            ? '$(sync~spin) MATE 输出被截断，调大 max_tokens 重试中…'
+            : '$(sync~spin) MATE 语法检查未通过，正在重试…',
         );
         try {
           result = await chatCompletion({
@@ -671,8 +671,8 @@ export function activate(context: vscode.ExtensionContext) {
         if (!text) {
           vscode.window.setStatusBarMessage(
             result.finishReason === 'length'
-              ? '$(circle-slash) TAME：重试后输出仍被截断'
-              : '$(circle-slash) TAME：重试后模型仍然没有给出公式',
+              ? '$(circle-slash) MATE：重试后输出仍被截断'
+              : '$(circle-slash) MATE：重试后模型仍然没有给出公式',
             5000,
           );
           return;
@@ -682,8 +682,8 @@ export function activate(context: vscode.ExtensionContext) {
           log(out, `重试后输出未正常结束：finish_reason=${result.finishReason}`);
           vscode.window.setStatusBarMessage(
             result.finishReason === 'length'
-              ? '$(circle-slash) TAME：重试后输出仍被截断，已放弃（可调大 maxTokens 或降低 effort）'
-              : `$(circle-slash) TAME：重试后输出未正常结束（${result.finishReason}），已放弃`,
+              ? '$(circle-slash) MATE：重试后输出仍被截断，已放弃（可调大 maxTokens 或降低 effort）'
+              : `$(circle-slash) MATE：重试后输出未正常结束（${result.finishReason}），已放弃`,
             6000,
           );
           return;
@@ -693,7 +693,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (issues.length > 0) {
           log(out, `语法检查未通过（重试后放弃）：${formatIssues(issues)}`);
           vscode.window.setStatusBarMessage(
-            `$(circle-slash) TAME：语法检查未通过，已放弃（${formatIssues(issues).slice(0, 100)}）`,
+            `$(circle-slash) MATE：语法检查未通过，已放弃（${formatIssues(issues).slice(0, 100)}）`,
             6000,
           );
           return;
@@ -747,7 +747,7 @@ export function activate(context: vscode.ExtensionContext) {
           `proxyCandidates=${proxyCandidates.map((c) => c.source).join(',') || 'none'}`,
       );
       vscode.window.setStatusBarMessage(
-        `$(error) TAME 失败：${friendlyError(error)}`,
+        `$(error) MATE 失败：${friendlyError(error)}`,
         6000,
       );
     } finally {

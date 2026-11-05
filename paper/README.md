@@ -1,7 +1,7 @@
-# 调研笔记：TAME 的 agent 架构、上下文工程与提示词工程
+# 调研笔记：MATE 的 agent 架构、上下文工程与提示词工程
 
 - 状态：v1（2026-11-05），基于仓库当前代码与 9 份公开资料
-- 范围：回答"公式生成这种任务需不需要 agent 架构"以及"TAME 现在的单轮设计对不对"
+- 范围：回答"公式生成这种任务需不需要 agent 架构"以及"MATE 现在的单轮设计对不对"
 - 不涉及：实现代码、产品排期、任何非公开信息
 - **实现后注记**：评审快照之后，M4 已实现；截断重试已改为“调大 `max_tokens` 或放弃”，其它非 `stop` 原因不再重试；README/PLAN 里程碑状态已同步。
 
@@ -9,19 +9,19 @@
 
 1. 公式生成（写完一句描述 → 按 `Cmd+E` → 生成 LaTeX）属于哪类任务？ReAct / Reflexion / planning / tool-use / memory / multi-agent 这些 agent 架构对它有没有收益？
 2. 单轮无状态 Chat Completions + 结构化上下文 + 确定性语法校验 + 失败重试 1 次，这套基线在文献和一线工程经验里是否站得住？
-3. TAME 当前的 prompt 结构、上下文拼装、输出约束、重试策略还有哪些具体缺口？
+3. MATE 当前的 prompt 结构、上下文拼装、输出约束、重试策略还有哪些具体缺口？
 4. 对 M5（代码/FIM 与发布）、M6（Marketplace）、M7（可选 agent）分别该做什么、不该做什么？
 
 ## 2. 方法
 
 - **读现状**：`PLAN.md`、`DEV-PLAN.md`、`agent-complete/README.md`；源码 `src/prompt.ts`、`src/context.ts`、`src/latexCheck.ts`、`src/extension.ts`（生成/重试/选区预览/错误分类主流程）、`src/chatClient.ts`、`src/panel.ts`。
 - **查资料**：先 `web_search` 定位来源，再 `web_fetch` 读原文；优先论文原文（arXiv 摘要页）与官方文档，工程博客只作为经验性证据，不作为定论。
-- **对比方式**：把 TAME 的每个设计决策映射到文献中的模式，再判断"合理 / 过度 / 缺口"，并给置信度。
+- **对比方式**：把 MATE 的每个设计决策映射到文献中的模式，再判断"合理 / 过度 / 缺口"，并给置信度。
 - 局限：没有跑真实 API A/B，也没有本项目的人工评分集；凡涉及"质量会提升/下降"的结论都只能算推断，文中已标注。
 
 ## 3. 结论摘要
 
-1. **架构判断是对的**：公式生成是"单步、输入明确、输出很短、成功标准可机械判定、延迟敏感"的任务，符合"先做最简单的单次 LLM 调用"这一工程共识；ReAct、planning、多 agent 的收益主要来自多步环境交互，TAME 没有这种环境。**不需要 agent 架构**。（高置信度）
+1. **架构判断是对的**：公式生成是"单步、输入明确、输出很短、成功标准可机械判定、延迟敏感"的任务，符合"先做最简单的单次 LLM 调用"这一工程共识；ReAct、planning、多 agent 的收益主要来自多步环境交互，MATE 没有这种环境。**不需要 agent 架构**。（高置信度）
 2. **"语法检查 + 反馈重试 1 次"方向正确**：它是 evaluator-optimizer 模式的轻量、确定性版本，比让 LLM 自评更便宜可靠；采用 append-only 重试还能复用前缀缓存。但**输出被截断时用同样参数重试是无效动作**，应改参数而不是加反馈。（高）
 3. **上下文不是越多越好**：32k 默认对单条公式偏大，且用户刚写的"描述句"会落在长前缀的中段，正好踩中 lost-in-the-middle 的弱区。建议默认降到 8–16k，并在 user message 末尾用很短篇幅复述"最近几行 + 输出要求"。（中高；对质量的影响需要 A/B 验证）
 4. **"前缀缓存友好排序"与"关键信息放首尾"不冲突**：缓存要求稳定内容在前、可变内容在后；注意力要求关键信息靠首尾。两者的共同解是——system prompt 与文件元信息固定在最前，长前缀居中，光标后文与指令放在最后。（高）
@@ -34,7 +34,7 @@
 | --- | --- |
 | [agent-architectures.md](agent-architectures.md) | workflow vs agent 的边界；ReAct、Reflexion、planning、tool-use、memory、multi-agent 逐项适用性；"公式生成需不需要 agent"的正面回答 |
 | [prompt-engineering.md](prompt-engineering.md) | system prompt、结构化上下文、输出约束、自检/重试、context engineering、前缀缓存与请求顺序 |
-| [design-review.md](design-review.md) | 逐项对照 TAME 现状（合理/过度/缺口），M5/M6/M7 具体建议与置信度，最大设计风险 |
+| [design-review.md](design-review.md) | 逐项对照 MATE 现状（合理/过度/缺口），M5/M6/M7 具体建议与置信度，最大设计风险 |
 
 ## 5. 置信度约定
 

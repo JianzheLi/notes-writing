@@ -180,7 +180,7 @@ export class ControlPanel
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       vscode.window.setStatusBarMessage(
-        `$(error) TAME：保存设置失败（${message.slice(0, 80)}）`,
+        `$(error) MATE：保存设置失败（${message.slice(0, 80)}）`,
         4000,
       );
     }
@@ -256,7 +256,7 @@ function buildHtml(): string {
   </style>
 </head>
 <body>
-  <h1>TAME</h1>
+  <h1>MATE</h1>
   <div class="sub">Cmd+E 公式助手 · 控制台</div>
 
   <div class="card">

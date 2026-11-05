@@ -1,10 +1,10 @@
-# TAME 开发进度
+# MATE 开发进度
 
 - 日期：2026-11-05
 - 仓库：https://github.com/JianzheLi/notes-writing
 - 分支：`main`；最新里程碑：`m4`（`21b9049`）
 - 扩展目录：`agent-complete/`
-- 当前显示名：**TAME**（工作名，待定，见第 7 节）
+- 当前名：**MATE** — Markdown Assistant for TeX Equations（2026-11-05 定名）
 - 当前版本：`0.1.0`
 - 状态：**M0–M4 已完成，M5 未开始；未发布 Marketplace**
 - 测试：`npm test` **113/113 通过**；`tsc` 通过
@@ -19,7 +19,7 @@
 | M1 公式最小闭环 | 已完成 | `m1`（`e70d20b`） | Cmd+E → 上下文 → DeepSeek Chat → ghost text；代理跟随、网络诊断 |
 | M2 选区与判定 | 已完成 | `m2`（`04d41bb`） | 行内/行间/数学环境判定、选区替换、强制命令、auto 样式、红绿预览 |
 | M3 语法检查与错误处理 | 已完成 | `m3`（`24d470b`） | `latexCheck.ts`、失败重试 1 次、错误分类、截断处理 |
-| M4 上下文工程 | 已完成 | `m4`（`21b9049`） | 宏定义/小节、长文档开窗、前多后少、缓存命中展示、TAME 重命名 |
+| M4 上下文工程 | 已完成 | `m4`（`21b9049`） | 宏定义/小节、长文档开窗、前多后少、缓存命中展示、MATE 重命名 |
 | M5 代码模式与发布准备 | 未开始 | — | `.py` FIM 续写、`.ipynb` 验证/降级、bench、README |
 | M6 Marketplace | 未开始 | — | publisher、icon、LICENSE、repository、vsix、发布 |
 | M7（可选） | 未开始 | — | agent-lite：项目级上下文扩展、可选一次 evaluator |
@@ -44,9 +44,10 @@
 | 2026-11-05 | `b03feda` | 控制台“刷新显示（本地）”语义明确：只读本地，不联网 |
 | 2026-11-05 | `714cf46` | M3：`latexCheck.ts`、语法检查失败重试 1 次、错误分类 |
 | 2026-11-05 | `24d470b` | M3 完成，进入 M4；m3 tag |
-| 2026-11-05 | `45149e6` | M4：outline/macros/结构化上下文、缓存指标、重命名 TAME |
+| 2026-11-05 | `45149e6` | M4：outline/macros/结构化上下文、缓存指标、重命名 MATE |
 | 2026-11-05 | `673b466` | 修复截断重试：`finish_reason=length` 改为调大 `max_tokens`，不再同参数重试 |
 | 2026-11-05 | `21b9049` | 新增 `paper/` 调研；修正 public 状态；m4 tag |
+| 2026-11-05 | （rename） | 最终定名 **MATE**（Markdown Assistant for TeX Equations）；package name `mate`；内部 ID 暂留 `agentComplete.*` |
 
 ## 3. 分阶段变更
 
@@ -83,7 +84,7 @@
   - 前文占剩余预算 90%，后文 10%；
   - 选区描述移到后文之后，prefix 更稳定。
 - `lastRequest.ts` + 控制台 + 右下角状态栏：显示耗时、cache 命中数/百分比、attempts。
-- `package.json` / displayName / 命令分类 / 文档改为 TAME；内部命令/设置 ID 仍是 `agentComplete.*`。
+- `package.json` / displayName / 命令分类 / 文档改为 MATE；内部命令/设置 ID 仍是 `agentComplete.*`。
 - 新增 `paper/` 调研：agent 架构、提示词/上下文工程、设计评审。
 
 ## 4. 验证方式
@@ -96,7 +97,7 @@ npm test              # 113 个纯函数单测
 
 手工验收：
 1. VS Code 打开 `agent-complete` 文件夹，`F5` 启动扩展开发宿主。
-2. `Cmd+Shift+P` → `TAME: 设置 DeepSeek API Key`，或用仓库根目录 `api.txt` / `.env` / `DEEPSEEK_API_KEY`。
+2. `Cmd+Shift+P` → `MATE: 设置 DeepSeek API Key`，或用仓库根目录 `api.txt` / `.env` / `DEEPSEEK_API_KEY`。
 3. 在 `.md`/`.tex` 里写描述，`Cmd+E`；`Tab` 接受 ghost text/选区预览，`Esc` 取消。
 4. 控制台和右下角查看 `cache` 命中；输出面板看 `section=` / `macros=` / `finish=` / usage。
 5. 长文档、含 `\newcommand` 的文件、选区替换分别验证。
@@ -110,7 +111,7 @@ npm test              # 113 个纯函数单测
 5. **未做 workspace trust 处理**：不可信工作区仍会自动读取上下文并发送；发布前应确认策略。
 6. **`.py` / `.ipynb` 未做**：M5。
 7. **测试文件**：`agent-complete/scratch.md` 未跟踪；`api.txt`、`.env` 已在 `.gitignore`。
-8. **名称未定**：TAME 是工作名，未做 Marketplace/商标检索。
+8. **名称已定 MATE**：尚未做 Marketplace 精确重名/商标检索，M6 发布前补。
 
 ## 6. 下一步
 
@@ -126,67 +127,21 @@ npm test              # 113 个纯函数单测
   - 数据使用声明、首次使用引导、无遥测说明；vsix 本地回归后发布。
 - **M7（可选）**：agent-lite：项目级确定性上下文扩展（`\input`/跨文件宏/符号表）+ 可选一次 evaluator；不做自主 loop / multi-agent / 向量记忆。
 
-## 7. 名称候选（待定）
+## 7. 名称
 
-要求：短（≤6–8 字母）、能看出“文本 → 公式/写作”、有记忆点、不要和 Copilot 混淆；发布前需查 Marketplace 重名/商标。
+**MATE — Markdown Assistant for TeX Equations**（2026-11-05 定名）。
 
-| 名称 | 展开 | 优点 | 风险 |
-| --- | --- | --- | --- |
-`TeamMate` / `TeXMate` 的初步检索（2026-11-05）：
+- 4 字母，本身是英文单词 *mate*（伙伴/搭子），同时是描述短语的首字母缩写；
+- package name `mate`，displayName `MATE`；控制台、状态栏、README、CHANGELOG 已同步；
+- 内部命令/设置/视图 ID 仍保留 `agentComplete.*`，M6 发布前统一迁移（避免现在破坏已有配置/键位）。
 
-- `TeamMate` 是 Wolters Kluwer 的审计管理产品（[官网](https://www.wolterskluwer.com/en/solutions/solutions%20bucket/2020/03/13/20/27/teammate)），不建议直接用。
-- `TeXMate` 已有一个同名的 AI LaTeX 在线编辑器（[texmate.es](https://texmate.es/)），不建议直接用。
-- “Mate” 后缀本身很好，可以保留感觉、换掉前缀；以下候选未做 Marketplace 精确检索与商标检索。
+命名时排除的候选：
 
-| 名称 | 展开 | 优点 | 风险 |
-| --- | --- | --- | --- |
-| **EqMate** | **Eq**uation + **Mate** | 最接近 TeamMate 的“搭档”感；6 字母；公式写作明确 | “mate” 较常见，需查重 |
-| **TeXQuill** | **TeX** + **Quill** | 羽毛笔/写作 + TeX；独特、有画面感 | 8 字母；不如 mate 口语化 |
-| **TAME**（当前） | **T**ext-to-equation **A**ssistant for **M**arkdown **E**diting | 4 字母、像单词、“把 LaTeX 驯服”；包名已就绪 | “tame” 有“平淡/驯服”的双关；需查重名 |
-| **MATE** | **M**arkdown **A**ssistant for **T**eX **E**quations | 友好的“writing mate”，和 Markdown/TeX 直接相关 | 常见词，可能出现多个同名产品 |
-| **TEAM** | **T**ext-to-**E**quation **A**ssistant for **M**arkdown | 4 字母，和 TeamMate 近形；扩展自然 | 常见词，搜索冲突风险高 |
-| **EqScribe** | **Eq**uation **Scribe** | 唯一性更好，直接说明“写公式” | 8 字母，稍长；没有“agent”感 |
-| **TeXPal** | **TeX** + **Pal** | 6 字母，轻松友好 | 稍显幼稚；需查重 |
-| **CmdEq** | **Cmd+E** → **Eq**uation | 和快捷键强绑定，短、好记 | 快捷键如果改就失效；搜索词偏窄 |
-| **MUSE** | **M**arkdown **U**tility for **S**cientific **E**quations | 短、有“灵感”含义 | MUSE 被很多产品使用，重名风险高 |
+- `TeamMate`：Wolters Kluwer 的审计管理产品（[官网](https://www.wolterskluwer.com/en/solutions/solutions%20bucket/2020/03/13/20/27/teammate)），且 “team” 容易误解为多人协作；
+- `TeXMate`：已有同名 AI LaTeX 在线编辑器（[texmate.es](https://texmate.es/)）；
+- 其他备选：`TEAM`（Text-to-Equation Assistant for Markdown）、`TAME`、`PEN`、`PLOT`、`NOTE`、`EASE`、`EqMate`、`TeXQuill`、`Notate`、`Lemma`。
 
-### 单词型候选（“名字本身就是一个词”）
-
-| 名称 | 词义 | 优点 | 风险 |
-| --- | --- | --- | --- |
-| **Notate** | 动词：用记号/符号写下 | 直译“把描述写成记号”，6 字母，正好描述 text → notation；单词而非缩写 | 需查 Marketplace；名字偏安静 |
-| **Lemma** | 数学“引理” | 数学味强、优雅、6 字母 | 已有 LemmaScript VS Code 扩展 / npm 的 lemma 包，需避让 |
-| **Scribe** | 抄写员/书写者 | 写作意象直接，6 字母 | 比较通用，可能有同名产品 |
-| **Quill** | 羽毛笔 | 书写画面感强，5 字母 | QuillBot 等已有强关联，冲突风险高 |
-| **Chalk** | 粉笔 | 数学黑板感，5 字母 | 与“笔记/公式生成”关联弱一点 |
-| **Tome** | 厚书/学术书 | 笔记/论文感，4 字母 | 和公式关联弱 |
-| **TAME** | 驯服/温顺 | 当前已用，4 字母 | 语义偏“驯服”，不如 Notate 直接 |
-
-### 描述短语 → 缩写本身是一个单词
-
-| 缩写 | 展开 | 词义 / 备注 |
-| --- | --- | --- |
-| **MATE** | **M**arkdown **A**ssistant for **T**eX **E**quations | “写作搭子”，最接近 TeamMate 的感觉；4 字母，推荐 |
-| **TEAM** | **T**ext-to-**E**quation **A**ssistant for **M**arkdown | 和 TeamMate 最接近；但 “team” 容易被理解成多人协作 |
-| **TAME** | **T**ext-to-equation **A**ssistant for **M**arkdown **E**diting | 当前名；4 字母；“驯服 LaTeX” |
-| **PEN** | **P**rose-to-**E**quation **N**otation | 笔/写作的意象；3 字母；非常直接，但词太常见 |
-| **PLOT** | **P**rose-to-**L**aTeX **O**utput **T**ool | 数学图形 + 情节的双关；4 字母，较有记忆点 |
-| **NOTE** | **N**otation **O**utput from **T**ext **E**xpressions | “笔记”，和 notes 场景贴；但太常见 |
-| **EASE** | **E**quation **A**ssistant for **S**cientific **E**diting | 强调“让写作变轻松”；4 字母，温和 |
-| **MATH** | **M**arkdown **A**ssistant for **T**eX **H**andling | 领域一眼可见；过于通用，重名风险高 |
-
-**推荐**：如果保留“TeamMate 的搭子感”，选 **MATE**（Markdown Assistant for TeX Equations）；如果想和 TeamMate 最接近，选 **TEAM**（Text-to-Equation Assistant for Markdown）；当前 **TAME** 也已经满足“缩写是一个词”的条件。
-
-**倾向**：
-
-- 想要“TeamMate 的搭档感”，又不撞现有产品：**EqMate**
-- 想保留 TeX 字样、要独特：**TeXQuill**
-- **必须本身是一个英文单词**：**Notate**（最推荐）
-  tagline 可以写成 “describe it. notate it.” 或 “从一句话到 LaTeX 记号”。
-- 想继续用最短的词：**TAME**（当前）
-- `TeamMate` / `TeXMate` 暂不采用。
-
-名称确定后只需改 `package.json` 的 `name`/`displayName`、面板标题和文档；命令/设置 ID 留到 M6 一起迁移。
+尚未做 Marketplace 精确重名检索与商标检索，M6 发布前补。
 
 ## 8. 相关文档
 

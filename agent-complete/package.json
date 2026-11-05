@@ -1,7 +1,7 @@
 {
-  "name": "tame",
-  "displayName": "TAME",
-  "description": "TAME — Text-to-equation Assistant for Markdown Editing. 写完描述按 Cmd+E，用 DeepSeek 生成 LaTeX 公式。",
+  "name": "mate",
+  "displayName": "MATE",
+  "description": "MATE — Markdown Assistant for TeX Equations. 写完描述按 Cmd+E，用 DeepSeek 生成 LaTeX 公式。",
   "version": "0.1.0",
   "publisher": "local",
   "license": "MIT",
@@ -22,42 +22,42 @@
       {
         "command": "agentComplete.trigger",
         "title": "生成（公式/补全）",
-        "category": "TAME"
+        "category": "MATE"
       },
       {
         "command": "agentComplete.triggerInline",
         "title": "生成行内公式",
-        "category": "TAME"
+        "category": "MATE"
       },
       {
         "command": "agentComplete.triggerDisplay",
         "title": "生成行间公式",
-        "category": "TAME"
+        "category": "MATE"
       },
       {
         "command": "agentComplete.setApiKey",
         "title": "设置 DeepSeek API Key",
-        "category": "TAME"
+        "category": "MATE"
       },
       {
         "command": "agentComplete.diagnostics",
         "title": "网络诊断",
-        "category": "TAME"
+        "category": "MATE"
       },
       {
         "command": "agentComplete.acceptSelectionPreview",
         "title": "接受选区替换（Tab）",
-        "category": "TAME"
+        "category": "MATE"
       },
       {
         "command": "agentComplete.cancelSelectionPreview",
         "title": "取消选区替换（Esc）",
-        "category": "TAME"
+        "category": "MATE"
       },
       {
         "command": "agentComplete.openControlPanel",
         "title": "打开控制台",
-        "category": "TAME"
+        "category": "MATE"
       }
     ],
     "keybindings": [
@@ -82,7 +82,7 @@
       "activitybar": [
         {
           "id": "agentComplete",
-          "title": "TAME",
+          "title": "MATE",
           "icon": "media/panel.svg"
         }
       ]
@@ -97,7 +97,7 @@
       ]
     },
     "configuration": {
-      "title": "TAME",
+      "title": "MATE",
       "properties": {
         "agentComplete.model": {
           "type": "string",

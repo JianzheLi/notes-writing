@@ -1,4 +1,4 @@
-# 设计评审：TAME 现状逐项对照（含 M5/M6/M7 建议）
+# 设计评审：MATE 现状逐项对照（含 M5/M6/M7 建议）
 
 - 评审快照：2026-11-05，`PLAN.md`、`DEV-PLAN.md`、`agent-complete/README.md`，以及 `src/prompt.ts`、`context.ts`、`extension.ts`、`chatClient.ts`、`latexCheck.ts`、`panel.ts`、`macros.ts`、`outline.ts`、`lastRequest.ts`
 - 注意：评审期间 M4（宏定义/小节/缓存指标）正在实现，部分文件仍在变。本文评价的是**设计决策**，不是最终 diff；若后续实现与本文描述不一致，以代码为准。

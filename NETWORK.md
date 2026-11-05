@@ -1,7 +1,7 @@
 # 网络与数据流说明（供 IT / 合规确认）
 
-- 插件：**TAME**（包名 `tame`，目录 `agent-complete/`；VSCode 扩展，本地开发版，未发布到 Market）
-- 版本：0.1.0（M1）
+- 插件：**MATE**（包名 `mate`，目录 `agent-complete/`；VSCode 扩展，本地开发版，未发布到 Market）
+- 版本：0.1.0（M4）
 - 日期：2026-11-04
 - 用途：说明这个插件运行时**如何联网、发给谁、发什么、走不走代理**
 
@@ -81,14 +81,14 @@
 ## 7. 本地存储与日志
 
 - **API key**：可放在本地 `api.txt` / `.env`（默认在工作区根目录/扩展目录/上一级查找，文件已在 `.gitignore` 中），或环境变量 `DEEPSEEK_API_KEY`，或 VS Code `SecretStorage`（macOS 上是 Keychain）；都不进代码仓库、不打印
-- **日志**：VS Code 输出面板 `TAME`，记录：语言、行内/行间模式、思考强度、代理来源、上下文长度、输出长度、耗时、token usage、错误原因；**不记录 prompt 正文和 key**
+- **日志**：VS Code 输出面板 `MATE`，记录：语言、行内/行间模式、思考强度、代理来源、上下文长度、输出长度、耗时、token usage、错误原因；**不记录 prompt 正文和 key**
 - 日志仅存在本机，不会上传
 
 ## 8. 如何核验
 
-- 命令面板 → `TAME: 网络诊断`：打印代理来源，并用 `GET /models` 实测连通性（不消耗补全 token）
+- 命令面板 → `MATE: 网络诊断`：打印代理来源，并用 `GET /models` 实测连通性（不消耗补全 token）
 - 终端执行 `scutil --proxy` 查看系统代理
-- 输出面板 `TAME` 里每次请求都有 `proxy=system/http.proxy/env/...` 记录
+- 输出面板 `MATE` 里每次请求都有 `proxy=system/http.proxy/env/...` 记录
 
 ## 9. 已知限制
 
