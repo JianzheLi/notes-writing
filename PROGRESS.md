@@ -162,6 +162,21 @@ npm test              # 113 个纯函数单测
 | **Tome** | 厚书/学术书 | 笔记/论文感，4 字母 | 和公式关联弱 |
 | **TAME** | 驯服/温顺 | 当前已用，4 字母 | 语义偏“驯服”，不如 Notate 直接 |
 
+### 描述短语 → 缩写本身是一个单词
+
+| 缩写 | 展开 | 词义 / 备注 |
+| --- | --- | --- |
+| **MATE** | **M**arkdown **A**ssistant for **T**eX **E**quations | “写作搭子”，最接近 TeamMate 的感觉；4 字母，推荐 |
+| **TEAM** | **T**ext-to-**E**quation **A**ssistant for **M**arkdown | 和 TeamMate 最接近；但 “team” 容易被理解成多人协作 |
+| **TAME** | **T**ext-to-equation **A**ssistant for **M**arkdown **E**diting | 当前名；4 字母；“驯服 LaTeX” |
+| **PEN** | **P**rose-to-**E**quation **N**otation | 笔/写作的意象；3 字母；非常直接，但词太常见 |
+| **PLOT** | **P**rose-to-**L**aTeX **O**utput **T**ool | 数学图形 + 情节的双关；4 字母，较有记忆点 |
+| **NOTE** | **N**otation **O**utput from **T**ext **E**xpressions | “笔记”，和 notes 场景贴；但太常见 |
+| **EASE** | **E**quation **A**ssistant for **S**cientific **E**diting | 强调“让写作变轻松”；4 字母，温和 |
+| **MATH** | **M**arkdown **A**ssistant for **T**eX **H**andling | 领域一眼可见；过于通用，重名风险高 |
+
+**推荐**：如果保留“TeamMate 的搭子感”，选 **MATE**（Markdown Assistant for TeX Equations）；如果想和 TeamMate 最接近，选 **TEAM**（Text-to-Equation Assistant for Markdown）；当前 **TAME** 也已经满足“缩写是一个词”的条件。
+
 **倾向**：
 
 - 想要“TeamMate 的搭档感”，又不撞现有产品：**EqMate**
